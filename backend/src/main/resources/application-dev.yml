@@ -1,0 +1,4 @@
+# Profil de développement : ajoute les données de démo
+spring:
+  flyway:
+    locations: classpath:db/migration,classpath:db/dev

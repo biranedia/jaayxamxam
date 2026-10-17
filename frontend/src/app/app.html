@@ -1,0 +1,38 @@
+<a class="saut-contenu" href="#principal">Aller au contenu</a>
+
+<header class="bandeau">
+  <a routerLink="/" class="marque enseigne">Jaay sa xam-xam</a>
+
+  <!-- Sur grand écran, la navigation vient ici : la barre du bas disparaît -->
+  <nav class="nav-large" aria-label="Navigation principale">
+    @for (l of liens; track l.chemin) {
+      <a [routerLink]="l.chemin" routerLinkActive="actif"
+         [routerLinkActiveOptions]="{ exact: l.chemin === '/' }">{{ l.nom }}</a>
+    }
+  </nav>
+
+  <div class="bandeau-actions">
+    <!-- La position sert partout : distances, tri par proximité, carte -->
+    <button type="button" class="puce-lieu" (click)="localiser()" [disabled]="geo.etat() === 'recherche'">
+      <app-glyphe [nom]="geo.etat() === 'ok' ? 'position' : 'cible'" [taille]="14" />
+      <span class="texte-lieu">{{ libelleLieu() }}</span>
+    </button>
+    <!-- Les travailleurs doivent trouver l'inscription sans la chercher : elle est sur tous les écrans -->
+    <a routerLink="/inscription" class="bouton-inscription">
+      <app-glyphe nom="sceau" [taille]="14" /><span>M'inscrire</span>
+    </a>
+  </div>
+</header>
+
+<div id="principal">
+  <router-outlet />
+</div>
+
+<nav class="onglets" aria-label="Navigation principale">
+  @for (l of liens; track l.chemin) {
+    <a [routerLink]="l.chemin" routerLinkActive="actif"
+       [routerLinkActiveOptions]="{ exact: l.chemin === '/' }">
+      <app-glyphe [nom]="l.glyphe" [taille]="21" />{{ l.nom }}
+    </a>
+  }
+</nav>

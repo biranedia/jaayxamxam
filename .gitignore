@@ -1,0 +1,33 @@
+# ================= Frontend (Angular) =================
+# Dépendances : réinstallables, et liées au système d'exploitation.
+# esbuild pose un binaire propre à chaque système : les versionner casse le
+# projet dès qu'on change de machine.
+frontend/node_modules/
+frontend/dist/
+frontend/.angular/
+
+# ================= Backend (Maven) =================
+backend/target/
+# Maven téléchargé par le lanceur mvnw : une dizaine de mégaoctets, réinstallable
+backend/.maven/
+# Photos envoyées par les artisans et les livreurs : des données, pas du code
+backend/donnees/
+
+# ================= Secrets =================
+# Un mot de passe poussé dans git y reste pour toujours, même effacé ensuite.
+.env
+*.local.env
+
+# ================= Sauvegardes locales =================
+_maj/
+
+# ================= Environnements de travail =================
+.idea/
+*.iml
+.vscode/
+
+# ================= Système et journaux =================
+Thumbs.db
+.DS_Store
+*.log
+npm-debug.log*

@@ -1,0 +1,119 @@
+<main class="contenu">
+  <p style="margin:.2rem 0 .8rem"><a routerLink="/">← Tous les artisans</a></p>
+
+  @if (erreur()) {
+    <p class="erreur">{{ erreur() }}</p>
+  } @else if (detail(); as d) {
+    @let a = d.artisan;
+
+    <article class="panneau" [style.--teinte]="teinte(a.metierFamille)">
+      <div class="peinture">
+        @if (a.photo) {
+          <img class="portrait" [src]="urlPhoto(a.photo)" [alt]="'Photo de ' + a.nom"
+               loading="lazy" decoding="async" />
+        } @else {
+          <app-glyphe [nom]="a.metierIcone ?? 'defaut'" [taille]="30" />
+          <span class="initiales">{{ initiales(a.nom) }}</span>
+        }
+      </div>
+
+      <div class="corps">
+        <h1 class="nom enseigne">
+          {{ a.nom }}
+          @if (a.verifie) {
+            <span class="sceau"><app-glyphe nom="sceau" [taille]="12" />Vérifié</span>
+          }
+        </h1>
+        <p class="metier-lieu">{{ a.metier }} · {{ a.quartier }}, {{ a.ville }}</p>
+
+        <div class="faits">
+          <span class="presence" [class.en-ligne]="estEnLigne(a.derniereActivite)">
+            {{ estEnLigne(a.derniereActivite) ? 'En ligne' : 'Hors ligne' }}
+          </span>
+          @if (distance(); as d) {
+            <span class="distance">{{ formatDistance(d) }} <small>d'ici</small></span>
+          }
+        </div>
+
+        <div class="faits">
+          <span>{{ a.anneesExperience }} {{ a.anneesExperience > 1 ? 'ans' : 'an' }} de métier</span>
+          @if (a.tarifIndicatif) { <span class="tarif">dès {{ fcfa(a.tarifIndicatif) }}</span> }
+        </div>
+
+        @if (a.description) { <p class="description">{{ a.description }}</p> }
+
+        @if (contacts.erreur()) { <p class="erreur">{{ contacts.erreur() }}</p> }
+        <div class="actions">
+          <button type="button" class="bouton" (click)="contacts.appeler('artisan', a.id)"
+                  [disabled]="contacts.enCours() === 'artisan:' + a.id">Appeler</button>
+          <button type="button" class="bouton whatsapp" (click)="contacts.whatsapp('artisan', a.id)"
+                  [disabled]="contacts.enCours() === 'artisan:' + a.id">WhatsApp</button>
+        </div>
+      </div>
+    </article>
+
+    <a class="bouton cobalt large" routerLink="/demande" style="margin:1rem 0"
+       [queryParams]="{ artisanId: a.id, metierId: a.metierId, zoneId: a.zoneId }">
+      Lui faire une demande
+    </a>
+
+    <section class="bloc">
+      <h2 class="enseigne">Ce que disent les clients</h2>
+      @if (d.noteMoyenne !== null) {
+        <p style="display:flex;align-items:baseline;gap:.6rem;margin:0 0 .8rem">
+          <span class="note">{{ d.noteMoyenne | number: '1.1-1' }}</span>
+          <span class="etoiles">{{ etoiles(d.noteMoyenne) }}<span>{{ d.nombreAvis }} avis</span></span>
+        </p>
+      } @else {
+        <p class="sans-avis">Personne ne l'a encore noté.</p>
+      }
+
+      @if (d.avis.length > 0) {
+        <ul class="avis-liste">
+          @for (v of d.avis; track v.creeLe) {
+            <li>
+              <span class="etoiles">{{ etoiles(v.note) }}</span>
+              <span class="sans-avis"> · {{ v.creeLe | date: 'd MMM yyyy' }}</span>
+              @if (v.commentaire) { <p>{{ v.commentaire }}</p> }
+            </li>
+          }
+        </ul>
+      }
+    </section>
+
+    <section class="bloc">
+      <h2 class="enseigne">Donner mon avis</h2>
+      <p class="sous-titre">
+        Réservé aux clients : entrez le code reçu quand vous avez envoyé votre demande.
+      </p>
+
+      <form [formGroup]="formAvis" (ngSubmit)="envoyerAvis()" class="formulaire">
+        <label>
+          Code de suivi
+          <input formControlName="codeSuivi" autocomplete="off" autocapitalize="characters"
+                 placeholder="DK7M2PQX4"
+                 style="font-family:Anton,monospace;letter-spacing:.12em" />
+        </label>
+        <label>
+          Note
+          <select formControlName="note">
+            @for (n of [5, 4, 3, 2, 1]; track n) {
+              <option [ngValue]="n">{{ etoiles(n) }}</option>
+            }
+          </select>
+        </label>
+        <label>
+          Commentaire (facultatif)
+          <textarea formControlName="commentaire" rows="3"></textarea>
+        </label>
+        @if (avisErreur()) { <p class="erreur">{{ avisErreur() }}</p> }
+        @if (avisMessage()) { <p class="succes">{{ avisMessage() }}</p> }
+        <button type="submit" class="bouton large" [disabled]="formAvis.invalid || avisEnCours()">
+          Publier mon avis
+        </button>
+      </form>
+    </section>
+  } @else {
+    <p class="vide">Chargement…</p>
+  }
+</main>

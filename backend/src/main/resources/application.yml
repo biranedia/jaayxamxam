@@ -1,0 +1,47 @@
+spring:
+  application:
+    name: jaayxamxam-api
+  datasource:
+    # Valeurs par défaut pour le développement local (surchargées par les variables d'environnement)
+    url: ${DB_URL:jdbc:postgresql://localhost:5433/jaayxamxam}
+    username: ${DB_USER:jaayxamxam}
+    password: ${DB_PASSWORD:jaayxamxam_dev}
+  jpa:
+    hibernate:
+      ddl-auto: validate   # le schéma est géré par Flyway, Hibernate ne fait que vérifier
+    open-in-view: false
+  flyway:
+    enabled: true
+  servlet:
+    multipart:
+      # Une photo de téléphone compressée tient largement dedans
+      max-file-size: 5MB
+      max-request-size: 6MB
+
+server:
+  port: 8080
+
+# Origine autorisée pour le frontend Angular (CORS)
+app:
+  cors:
+    allowed-origins: ${CORS_ORIGINS:http://localhost:4200}
+  admin:
+    # Sans ce jeton, l'administration est injoignable. À définir en production,
+    # par exemple : openssl rand -hex 24
+    jeton: ${ADMIN_TOKEN:}
+  photos:
+    # En production, ce dossier doit être un volume persistant, sinon les photos
+    # disparaissent au prochain déploiement.
+    dossier: ${PHOTOS_DIR:./donnees/photos}
+  # Limites par adresse IP et par heure (voir LimiteurDebit)
+  limites:
+    creations-par-heure: ${LIMITE_CREATIONS:10}   # demandes, courses et avis
+    suivis-par-heure: ${LIMITE_SUIVIS:30}         # essais de codes de suivi
+    contacts-par-heure: ${LIMITE_CONTACTS:60}     # numéros de téléphone consultés
+    admin-par-heure: ${LIMITE_ADMIN:200}          # appels à l'administration
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info

@@ -1,0 +1,1050 @@
+/* ================================================================
+   Jaay sa xam-xam — système visuel « enseigne peinte »
+   Inspiration : les panneaux peints à la main des ateliers de Dakar
+   et les couleurs des cars rapides (cobalt, safran, brique).
+   ================================================================ */
+
+/* Polices auto-hébergées : aucun appel à Google, tout part du serveur */
+@import '@fontsource/anton/400.css';
+@import '@fontsource-variable/archivo/index.css';
+@import 'leaflet/dist/leaflet.css';
+
+:root {
+  /* Peintures */
+  --nuit: #16120e;          /* encre brun-noir : texte et bandeau */
+  --cobalt: #14479e;        /* bleu car rapide : actions principales, Yonni la */
+  --safran: #f5b216;        /* jaune car rapide : vérifié, mises en avant */
+  --brique: #c2410c;        /* orange brûlé : urgence */
+  --atelier: #157347;       /* vert atelier : disponible, WhatsApp */
+  --sable: #efe8db;         /* fond neutre, séparateurs */
+  --sable-fonce: #d9cfbc;
+  --papier: #ffffff;
+  --gris: #6b6358;          /* texte secondaire */
+
+  /* Une couleur par famille de métier : repérable d'un coup d'œil, même sans savoir lire.
+     Au-delà d'une dizaine de teintes, plus personne ne les distingue. */
+  --f-batiment: #c2410c;    /* brique */
+  --f-maison: #157347;      /* vert atelier */
+  --f-mecanique: #4a4e57;   /* gris métal */
+  --f-beaute: #8b2e6b;      /* violet */
+  --f-services: #14479e;    /* cobalt */
+
+  --tabs: 62px;             /* hauteur de la barre d'onglets */
+  --entete: 53px;           /* hauteur du bandeau de marque */
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  font-family: 'Archivo Variable', system-ui, sans-serif;
+  font-size: 16px;
+  line-height: 1.45;
+  color: var(--nuit);
+  background: var(--papier);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Titres d'enseigne : Anton, serré, en capitales */
+.enseigne {
+  font-family: Anton, 'Archivo Variable', sans-serif;
+  font-weight: 400;
+  text-transform: uppercase;
+  letter-spacing: .01em;
+  line-height: 1.02;
+}
+
+/* ---------- Bandeau de marque ---------- */
+.bandeau {
+  background: var(--nuit);
+  color: var(--papier);
+  padding: .7rem 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: .75rem;
+  position: sticky;
+  top: 0;
+  z-index: 40;
+}
+.bandeau .marque {
+  color: inherit;
+  text-decoration: none;
+  font-size: 1.22rem;
+  /* Trait safran sous le mot, comme la bordure peinte d'un panneau */
+  border-bottom: 3px solid var(--safran);
+  padding-bottom: 1px;
+}
+.puce-lieu {
+  display: inline-flex;
+  align-items: center;
+  gap: .35rem;
+  background: rgba(255, 255, 255, .12);
+  color: var(--papier);
+  border: 0;
+  font: inherit;
+  font-size: .82rem;
+  padding: .35rem .6rem;
+  border-radius: 999px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.puce-lieu:disabled { opacity: .6; cursor: progress; }
+.puce-lieu svg { flex: none; }
+
+/* ---------- Mise en page ---------- */
+.contenu {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 1rem 1rem calc(var(--tabs) + 1.5rem);
+}
+/* La carte occupe tout l'espace restant : aucun défilement de page sur cet écran */
+.contenu.pleine-page {
+  position: fixed;
+  top: var(--entete); left: 0; right: 0; bottom: var(--tabs);
+  max-width: none;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+h1.titre-page {
+  font-size: 1.5rem;
+  margin: .25rem 0 .2rem;
+}
+.sous-titre { color: var(--gris); margin: 0 0 1rem; font-size: .95rem; }
+
+/* ---------- Puces de filtre (métiers, véhicules) ---------- */
+.rangee-puces {
+  display: flex;
+  gap: .5rem;
+  overflow-x: auto;
+  padding: .2rem .2rem .6rem;
+  margin: 0 -1rem .5rem;
+  padding-left: 1rem;
+  padding-right: 1rem;
+  scrollbar-width: none;
+}
+.rangee-puces::-webkit-scrollbar { display: none; }
+.puce {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: .4rem;
+  padding: .45rem .8rem;
+  border: 2px solid var(--sable-fonce);
+  background: var(--papier);
+  color: var(--nuit);
+  border-radius: 999px;
+  font: inherit;
+  font-size: .9rem;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.puce[aria-pressed='true'] {
+  background: var(--nuit);
+  border-color: var(--nuit);
+  color: var(--papier);
+}
+/* Une famille sélectionnée prend sa propre couleur de peinture */
+.puce.teintee[aria-pressed='true'] {
+  background: var(--teinte);
+  border-color: var(--teinte);
+}
+
+/* Champ de recherche des métiers */
+.champ-recherche {
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+  border: 2px solid var(--sable-fonce);
+  border-radius: 4px;
+  padding: 0 .7rem;
+  margin-bottom: .8rem;
+  color: var(--gris);
+}
+.champ-recherche:focus-within { border-color: var(--cobalt); color: var(--nuit); }
+.champ-recherche input {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  padding: .65rem 0;
+  font: inherit;
+  color: var(--nuit);
+  background: transparent;
+}
+.champ-recherche input:focus { outline: 0; }
+
+/* ---------- Fiche d'un travailleur : le panneau peint ---------- */
+.liste { display: grid; gap: .85rem; }
+
+.panneau {
+  display: grid;
+  grid-template-columns: 76px 1fr;
+  border: 2px solid var(--nuit);
+  border-radius: 4px;              /* coins francs, comme une planche */
+  overflow: hidden;
+  background: var(--papier);
+}
+/* Le bloc de peinture : couleur du métier + outil dessiné */
+.panneau .peinture {
+  position: relative;
+  overflow: hidden;
+  background: var(--teinte, var(--f-services));
+  color: #fff;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: .3rem;
+  padding: .6rem .3rem;
+  text-align: center;
+}
+.panneau .peinture .initiales {
+  font-family: Anton, sans-serif;
+  font-size: 1.1rem;
+  letter-spacing: .04em;
+}
+.panneau .corps { padding: .7rem .8rem .8rem; min-width: 0; }
+
+.panneau .nom {
+  font-size: 1.22rem;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: .4rem;
+  flex-wrap: wrap;
+}
+.panneau .nom a { color: inherit; text-decoration: none; }
+.panneau .metier-lieu {
+  margin: .1rem 0 .45rem;
+  color: var(--gris);
+  font-size: .9rem;
+}
+
+/* Sceau « vérifié » : pastille safran, pas un badge générique */
+.sceau {
+  display: inline-flex;
+  align-items: center;
+  gap: .25rem;
+  background: var(--safran);
+  color: var(--nuit);
+  font-size: .72rem;
+  font-weight: 700;
+  padding: .12rem .45rem .12rem .3rem;
+  border-radius: 3px;
+}
+
+/* Les deux faits vivants : présence et distance */
+.faits {
+  display: flex;
+  align-items: center;
+  gap: .9rem;
+  flex-wrap: wrap;
+  margin-bottom: .5rem;
+  font-size: .9rem;
+}
+.presence { display: inline-flex; align-items: center; gap: .35rem; font-weight: 600; }
+.presence::before {
+  content: '';
+  width: 9px; height: 9px; border-radius: 50%;
+  background: var(--sable-fonce);
+}
+.presence.en-ligne { color: var(--atelier); }
+.presence.en-ligne::before {
+  background: var(--atelier);
+  box-shadow: 0 0 0 3px rgba(21, 115, 71, .18);
+}
+.distance {
+  font-family: Anton, sans-serif;
+  font-size: 1.02rem;
+  letter-spacing: .02em;
+}
+.distance small { font-family: inherit; font-weight: 400; color: var(--gris); }
+
+.etoiles { color: var(--safran); letter-spacing: .05em; }
+.etoiles span { color: var(--gris); font-size: .85rem; letter-spacing: 0; margin-left: .2rem; }
+.sans-avis { color: var(--gris); font-size: .85rem; }
+
+.tarif {
+  font-family: Anton, sans-serif;
+  font-size: 1.02rem;
+}
+.description { margin: .1rem 0 .6rem; font-size: .93rem; }
+
+/* ---------- Boutons ---------- */
+.actions { display: flex; gap: .5rem; flex-wrap: wrap; }
+.bouton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: .4rem;
+  padding: .55rem 1rem;
+  min-height: 44px;                /* cible tactile confortable */
+  border: 2px solid var(--nuit);
+  border-radius: 4px;
+  background: var(--nuit);
+  color: var(--papier);
+  font: inherit;
+  font-weight: 700;
+  text-decoration: none;
+  cursor: pointer;
+}
+.bouton.whatsapp { background: var(--atelier); border-color: var(--atelier); }
+.bouton.cobalt { background: var(--cobalt); border-color: var(--cobalt); }
+.bouton.creux { background: var(--papier); color: var(--nuit); }
+.bouton.large { width: 100%; }
+.bouton:disabled { opacity: .45; cursor: not-allowed; }
+.bouton:focus-visible, .puce:focus-visible, .puce-lieu:focus-visible, a:focus-visible {
+  outline: 3px solid var(--cobalt);
+  outline-offset: 2px;
+}
+
+/* ---------- Formulaires ---------- */
+.formulaire { display: grid; gap: .9rem; }
+/* Sans min-inline-size, un fieldset s'élargit au contenu et déborde de l'écran */
+fieldset { min-inline-size: 0; border: 0; padding: 0; margin: 0; }
+legend { font-weight: 600; font-size: .92rem; margin-bottom: .4rem; }
+label { display: flex; flex-direction: column; gap: .3rem; font-weight: 600; font-size: .92rem; }
+select, input:not([type='checkbox']), textarea {
+  padding: .65rem .7rem;
+  font: inherit;
+  color: var(--nuit);
+  background: var(--papier);
+  border: 2px solid var(--sable-fonce);
+  border-radius: 4px;
+}
+select:focus, input:focus, textarea:focus { outline: 0; border-color: var(--cobalt); }
+textarea { min-height: 96px; resize: vertical; }
+.case { flex-direction: row; align-items: center; gap: .5rem; }
+.champ-erreur { color: var(--brique); font-weight: 500; font-size: .85rem; }
+
+.bloc {
+  border: 2px solid var(--sable-fonce);
+  border-radius: 4px;
+  padding: .9rem;
+  margin-bottom: 1rem;
+}
+.bloc h2 { font-size: 1.1rem; margin: 0 0 .6rem; }
+
+/* ---------- Messages ---------- */
+.erreur {
+  background: #fdeae2;
+  border-left: 5px solid var(--brique);
+  color: #7c2d12;
+  padding: .7rem .8rem;
+  border-radius: 4px;
+}
+.succes {
+  border: 2px solid var(--nuit);
+  border-top: 10px solid var(--atelier);
+  border-radius: 4px;
+  padding: 1rem;
+}
+.code {
+  font-family: Anton, ui-monospace, monospace;
+  font-size: 1.9rem;
+  letter-spacing: .14em;
+  background: var(--sable);
+  padding: .5rem .7rem;
+  border-radius: 4px;
+  display: inline-block;
+  margin: .4rem 0;
+}
+.vide { color: var(--gris); text-align: center; padding: 2rem 1rem; }
+.lien-fiche { display: inline-block; margin-top: .55rem; font-size: .9rem; font-weight: 600; color: var(--cobalt); }
+
+/* ---------- Avis ---------- */
+.avis-liste { list-style: none; padding: 0; display: grid; gap: .7rem; margin: 0; }
+.avis-liste li { border-left: 4px solid var(--sable-fonce); padding-left: .7rem; }
+.avis-liste p { margin: .15rem 0 0; }
+.note { font-family: Anton, sans-serif; font-size: 2rem; line-height: 1; }
+
+/* ---------- Carte ---------- */
+/* position + z-index : les marqueurs Leaflet restent sous la feuille de résultats */
+.zone-carte {
+  position: relative;
+  z-index: 0;
+  flex: 1;
+  width: 100%;
+  background: var(--sable);
+}
+/* Si les tuiles ne chargent pas (réseau faible), on garde un fond lisible */
+.zone-carte.hors-ligne {
+  background:
+    repeating-linear-gradient(0deg, var(--sable-fonce) 0 1px, transparent 1px 38px),
+    repeating-linear-gradient(90deg, var(--sable-fonce) 0 1px, transparent 1px 38px),
+    var(--sable);
+}
+.avis-carte {
+  margin: 0;
+  background: var(--safran);
+  color: var(--nuit);
+  font-size: .82rem;
+  font-weight: 600;
+  padding: .4rem .8rem;
+  text-align: center;
+}
+/* Marqueur dessiné à la main plutôt que l'icône Leaflet par défaut */
+.marqueur {
+  width: 34px; height: 34px;
+  border-radius: 50% 50% 50% 2px;
+  transform: rotate(-45deg);
+  border: 2px solid var(--nuit);
+  display: flex; align-items: center; justify-content: center;
+  color: #fff;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, .3);
+}
+.marqueur svg { transform: rotate(45deg); }
+.marqueur.moi { background: var(--cobalt); border-radius: 50%; transform: none; }
+
+/* Feuille des résultats sous la carte */
+.feuille {
+  position: fixed;
+  left: 0; right: 0;
+  bottom: var(--tabs);
+  background: var(--papier);
+  border-top: 2px solid var(--nuit);
+  border-radius: 12px 12px 0 0;
+  max-height: 46vh;
+  overflow-y: auto;
+  padding: .6rem 1rem 1rem;
+  z-index: 30;
+}
+.feuille .poignee {
+  width: 42px; height: 4px; border-radius: 2px;
+  background: var(--sable-fonce);
+  margin: 0 auto .6rem;
+}
+.ligne-proche {
+  display: flex;
+  align-items: center;
+  gap: .7rem;
+  padding: .55rem 0;
+  border-bottom: 1px solid var(--sable);
+  color: inherit;
+  text-decoration: none;
+}
+.ligne-proche:last-child { border-bottom: 0; }
+/* La photo remplit tout le bloc de peinture ; sans photo, l'outil dessiné reste */
+.portrait {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.ligne-proche .pastille {
+  position: relative;
+  overflow: hidden;
+  width: 38px; height: 38px; border-radius: 4px;
+  background: var(--teinte, var(--f-services));
+  color: #fff;
+  display: flex; align-items: center; justify-content: center;
+  flex: none;
+}
+.ligne-proche .infos { flex: 1; min-width: 0; }
+.ligne-proche .infos strong { display: block; font-size: .98rem; }
+.ligne-proche .infos small { color: var(--gris); }
+
+/* ---------- Barre d'onglets ---------- */
+.onglets {
+  position: fixed;
+  bottom: 0; left: 0; right: 0;
+  height: var(--tabs);
+  background: var(--nuit);
+  display: flex;
+  z-index: 50;
+}
+.onglets a {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  color: rgba(255, 255, 255, .62);
+  text-decoration: none;
+  font-size: .7rem;
+  font-weight: 600;
+  border-top: 3px solid transparent;
+}
+.onglets a.actif { color: var(--papier); border-top-color: var(--safran); }
+/* Cinq onglets sur 390 px : les libellés doivent tenir sans se couper */
+.onglets a { font-size: .66rem; padding: 0 2px; text-align: center; }
+/* L'inscription s'adresse aux travailleurs : elle se distingue du reste */
+.onglets a.onglet-inscription { color: var(--safran); }
+.onglets a.onglet-inscription.actif { color: var(--nuit); background: var(--safran); border-top-color: var(--safran); }
+
+/* Choix du type de travailleur, à l'entrée de l'inscription */
+.choix-metier {
+  width: 100%;
+  text-align: left;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+  padding: 0;
+  margin-bottom: .85rem;
+}
+.choix-metier .corps { display: block; }
+.choix-metier .nom { display: block; margin-bottom: .15rem; }
+.choix-metier .metier-lieu { display: block; }
+
+.lien-retour {
+  border: 0;
+  background: none;
+  padding: 0;
+  font: inherit;
+  color: var(--cobalt);
+  font-weight: 600;
+  cursor: pointer;
+}
+.aide { font-weight: 400; font-size: .82rem; color: var(--gris); }
+
+/* ---------- Yonni la : identité bleu car rapide ---------- */
+.banniere-yonni {
+  background: var(--cobalt);
+  color: var(--papier);
+  /* Bande safran en bas, comme le liseré peint d'un car rapide */
+  border-bottom: 8px solid var(--safran);
+  padding: 1.1rem 1rem 1.2rem;
+}
+.banniere-yonni h1 { font-size: 2rem; margin: 0 0 .2rem; }
+.banniere-yonni p { margin: 0; font-size: .95rem; opacity: .92; }
+
+.course-resume {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+  background: var(--sable);
+  border-radius: 4px;
+  padding: .7rem .8rem;
+}
+.course-resume .prix { font-family: Anton, sans-serif; font-size: 1.6rem; }
+.course-resume small { color: var(--gris); display: block; font-weight: 400; }
+
+/* ---------- Étapes d'une demande (c'est une suite, donc numérotée visuellement) ---------- */
+.etapes {
+  display: flex;
+  list-style: none;
+  padding: 0;
+  margin: 1rem 0 0;
+}
+.etapes li {
+  flex: 1;
+  position: relative;
+  padding-top: 22px;
+  text-align: center;
+  font-size: .76rem;
+  color: var(--gris);
+}
+.etapes li::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 50%;
+  transform: translateX(-50%);
+  width: 14px; height: 14px;
+  border-radius: 50%;
+  border: 2px solid var(--sable-fonce);
+  background: var(--papier);
+  z-index: 2;
+}
+.etapes li::after {
+  content: '';
+  position: absolute;
+  top: 6px; left: -50%;
+  width: 100%; height: 2px;
+  background: var(--sable-fonce);
+  z-index: 1;
+}
+.etapes li:first-child::after { display: none; }
+.etapes li.faite { color: var(--nuit); font-weight: 600; }
+.etapes li.faite::before { background: var(--atelier); border-color: var(--atelier); }
+.etapes li.faite::after { background: var(--atelier); }
+.etapes li.courante::before { box-shadow: 0 0 0 4px rgba(21, 115, 71, .2); }
+
+@media (prefers-reduced-motion: reduce) {
+  * { animation: none !important; transition: none !important; }
+}
+
+/* Aperçu de la photo avant envoi, à l'inscription */
+.apercu-photo {
+  display: block;
+  width: 140px;
+  height: 140px;
+  object-fit: cover;
+  border: 2px solid var(--nuit);
+  border-radius: 4px;
+  margin: .6rem 0;
+}
+
+/* ---------- Administration ---------- */
+.chiffres {
+  display: flex;
+  gap: .6rem;
+}
+.chiffres div {
+  flex: 1;
+  border: 2px solid var(--sable-fonce);
+  border-radius: 4px;
+  padding: .6rem .5rem;
+  text-align: center;
+}
+.chiffres .nombre {
+  font-family: Anton, sans-serif;
+  font-size: 1.7rem;
+  display: block;
+  line-height: 1;
+}
+.chiffres small { color: var(--gris); font-size: .74rem; }
+
+.vignette {
+  width: 64px;
+  height: 64px;
+  object-fit: cover;
+  border: 2px solid var(--nuit);
+  border-radius: 4px;
+  flex: none;
+}
+
+/* ================================================================
+   COUCHE 2 — Accueil, grand écran, interactions
+   Tout ce qui suit a été ajouté après la première version, qui ne
+   savait faire qu'un téléphone. Les règles de base restent au-dessus.
+   ================================================================ */
+
+/* ---------- Accessibilité : aller droit au contenu ---------- */
+.saut-contenu {
+  position: absolute;
+  left: -9999px;
+  background: var(--safran);
+  color: var(--nuit);
+  padding: .6rem 1rem;
+  font-weight: 700;
+  z-index: 100;
+}
+.saut-contenu:focus { left: .5rem; top: .5rem; }
+
+/* ---------- En-tête : actions et navigation ---------- */
+.bandeau-actions { display: flex; align-items: center; gap: .5rem; }
+
+.bouton-inscription {
+  display: inline-flex;
+  align-items: center;
+  gap: .35rem;
+  background: var(--safran);
+  color: var(--nuit);
+  text-decoration: none;
+  font-weight: 700;
+  font-size: .82rem;
+  padding: .4rem .7rem;
+  border-radius: 999px;
+  white-space: nowrap;
+  transition: transform .12s ease, filter .12s ease;
+}
+.bouton-inscription:hover { filter: brightness(1.08); }
+.bouton-inscription:active { transform: scale(.97); }
+
+/* Navigation d'en-tête : cachée tant qu'on est sur petit écran */
+.nav-large { display: none; }
+
+/* Sur téléphone, le libellé de position prend trop de place à côté du reste */
+@media (max-width: 420px) {
+  .texte-lieu { display: none; }
+  .puce-lieu { padding: .4rem .5rem; }
+}
+
+/* ---------- Bandeau d'accueil ---------- */
+.hero {
+  background: var(--nuit);
+  color: var(--papier);
+  /* Rayures très discrètes : le grain d'une planche peinte, pas un motif */
+  background-image: repeating-linear-gradient(
+    135deg, rgba(255, 255, 255, .035) 0 2px, transparent 2px 9px);
+  padding: 2rem 1rem 0;
+}
+.hero-dedans { max-width: 760px; margin: 0 auto; }
+
+.hero-oeil {
+  margin: 0 0 .5rem;
+  text-transform: uppercase;
+  letter-spacing: .14em;
+  font-size: .72rem;
+  font-weight: 700;
+  color: var(--safran);
+}
+.hero-titre {
+  font-size: clamp(2rem, 7vw, 3.4rem);
+  margin: 0 0 .7rem;
+  /* Le trait safran du logo, repris en grand sous le titre */
+  border-bottom: 5px solid var(--safran);
+  display: inline-block;
+  padding-bottom: .35rem;
+}
+.hero-texte {
+  margin: 0 0 1.3rem;
+  font-size: 1.02rem;
+  color: #d8d2c7;
+  max-width: 52ch;
+}
+
+.hero-recherche {
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+  background: var(--papier);
+  border-radius: 4px;
+  padding: .3rem .3rem .3rem .75rem;
+  color: var(--gris);
+  box-shadow: 0 6px 0 rgba(0, 0, 0, .25);
+}
+.hero-recherche input {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  background: transparent;
+  font: inherit;
+  padding: .6rem 0;
+  color: var(--nuit);
+}
+.hero-recherche input:focus { outline: 0; }
+.hero-recherche .bouton { min-height: 40px; padding: .4rem .9rem; }
+
+.hero-liens {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .4rem 1.1rem;
+  margin: .9rem 0 0;
+}
+.lien-fantome {
+  display: inline-flex;
+  align-items: center;
+  gap: .35rem;
+  background: none;
+  border: 0;
+  padding: .3rem 0;
+  font: inherit;
+  font-size: .88rem;
+  font-weight: 600;
+  color: var(--safran);
+  text-decoration: none;
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+}
+.lien-fantome:hover { border-bottom-color: currentColor; }
+.lien-fantome:disabled { opacity: .55; cursor: progress; }
+.lien-fantome.sombre { color: var(--cobalt); }
+
+/* Les chiffres : collés au bas du bandeau, à cheval sur le fond clair */
+.hero-chiffres {
+  max-width: 760px;
+  margin: 1.8rem auto 0;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1px;
+  background: rgba(255, 255, 255, .14);
+  border: 1px solid rgba(255, 255, 255, .14);
+  border-bottom: 0;
+}
+.hero-chiffres > div {
+  background: var(--nuit);
+  padding: .8rem .9rem;
+}
+.hero-chiffres dt {
+  font-size: .72rem;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  color: #a9a194;
+}
+.hero-chiffres dd { margin: .15rem 0 0; }
+.chiffre {
+  font-family: Anton, sans-serif;
+  font-size: 1.8rem;
+  line-height: 1;
+}
+.chiffre.vivant { color: var(--safran); }
+
+/* ---------- Sections de contenu ---------- */
+.section { margin: 2.2rem 0; }
+.section:first-child { margin-top: 1.6rem; }
+.titre-section { font-size: clamp(1.35rem, 3.4vw, 1.9rem); margin: 0 0 .3rem; }
+
+/* ---------- Tuiles de familles ---------- */
+.tuiles {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: .7rem;
+  margin-top: .9rem;
+}
+.tuile {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: .3rem;
+  padding: 1rem .9rem;
+  border: 2px solid var(--nuit);
+  border-radius: 4px;
+  background: var(--teinte, var(--nuit));
+  color: #fff;
+  text-decoration: none;
+  /* L'ombre dure remplace le dégradé : c'est un panneau, pas une carte de verre */
+  box-shadow: 4px 4px 0 var(--nuit);
+  transition: transform .13s ease, box-shadow .13s ease;
+}
+.tuile:hover { transform: translate(-2px, -2px); box-shadow: 6px 6px 0 var(--nuit); }
+.tuile:active { transform: translate(2px, 2px); box-shadow: 1px 1px 0 var(--nuit); }
+.tuile-nom { font-size: 1.12rem; }
+.tuile-compte { font-size: .8rem; opacity: .85; }
+.tuile-tous { background: var(--papier); color: var(--nuit); }
+
+/* ---------- Bloc Yonni la ---------- */
+.bloc-yonni {
+  display: grid;
+  gap: 1rem;
+  background: var(--cobalt);
+  color: #fff;
+  border: 2px solid var(--nuit);
+  border-radius: 4px;
+  padding: 1.3rem;
+  box-shadow: 5px 5px 0 var(--nuit);
+}
+.bloc-yonni p { max-width: 54ch; }
+.bloc-yonni .bouton { background: var(--safran); border-color: var(--nuit); color: var(--nuit); }
+.bloc-yonni .bouton.creux { background: transparent; color: #fff; border-color: #fff; }
+.bloc-yonni-dessin { display: none; opacity: .3; align-self: center; justify-self: end; }
+
+/* ---------- Comment ça marche ---------- */
+.etapes-accueil {
+  list-style: none;
+  padding: 0;
+  margin: 1rem 0 0;
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+  counter-reset: etape;
+}
+.etapes-accueil li {
+  border-top: 5px solid var(--safran);
+  padding-top: .8rem;
+}
+.etape-numero {
+  display: inline-block;
+  font-size: 2rem;
+  line-height: 1;
+  color: var(--sable-fonce);
+}
+.etapes-accueil h3 { margin: .2rem 0 .3rem; font-size: 1.05rem; }
+.etapes-accueil p { margin: 0; color: var(--gris); font-size: .93rem; }
+
+/* ---------- Appel à l'inscription ---------- */
+.bloc-inscription {
+  display: grid;
+  gap: 1rem;
+  align-items: center;
+  border: 2px solid var(--nuit);
+  border-left: 10px solid var(--safran);
+  border-radius: 4px;
+  padding: 1.2rem;
+}
+.bloc-inscription p { margin: .3rem 0 0; color: var(--gris); max-width: 56ch; }
+.bouton.large-auto { width: 100%; }
+
+/* ---------- Filtres de recherche ---------- */
+.filtres {
+  position: sticky;
+  top: var(--entete);
+  z-index: 20;
+  background: var(--papier);
+  padding-top: .6rem;
+  /* Sans marge négative, le fond blanc s'arrête avant les bords du conteneur */
+  margin: 0 -1rem;
+  padding-left: 1rem;
+  padding-right: 1rem;
+  border-bottom: 2px solid var(--sable);
+  margin-bottom: .9rem;
+}
+.champ-quartier { max-width: 340px; margin-bottom: .7rem; }
+.effacer {
+  border: 0;
+  background: none;
+  font-size: 1.4rem;
+  line-height: 1;
+  color: var(--gris);
+  cursor: pointer;
+  padding: 0 .2rem;
+}
+.effacer:hover { color: var(--nuit); }
+
+.resume-filtres {
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+  flex-wrap: wrap;
+  margin-bottom: .8rem;
+}
+.etiquette {
+  background: var(--sable);
+  border-radius: 3px;
+  padding: .2rem .55rem;
+  font-size: .85rem;
+  font-weight: 600;
+}
+.compte-resultats {
+  margin: 0 0 .8rem;
+  color: var(--gris);
+  font-size: .9rem;
+}
+.compte-resultats strong { color: var(--nuit); font-size: 1rem; }
+
+/* ---------- Grille de résultats ---------- */
+/* minmax : une colonne sur téléphone, deux puis trois dès qu'il y a la place.
+   Pas de point de rupture à écrire, la grille s'adapte toute seule. */
+.liste.grille {
+  grid-template-columns: repeat(auto-fill, minmax(330px, 1fr));
+  align-items: start;
+}
+.panneau { transition: box-shadow .14s ease, transform .14s ease; }
+.panneau:hover { box-shadow: 4px 4px 0 var(--sable-fonce); }
+
+/* ---------- Squelettes de chargement ---------- */
+.panneau.squelette { border-color: var(--sable-fonce); }
+.panneau.squelette .peinture { background: var(--sable-fonce); }
+.panneau.squelette .corps { display: grid; gap: .55rem; padding-top: .9rem; }
+.squelette .barre {
+  display: block;
+  height: 11px;
+  border-radius: 3px;
+  background: var(--sable);
+  animation: pulsation 1.3s ease-in-out infinite;
+}
+.squelette .b1 { width: 60%; height: 16px; }
+.squelette .b2 { width: 85%; }
+.squelette .b3 { width: 45%; }
+.squelette .b4 { width: 70%; height: 30px; }
+@keyframes pulsation { 50% { opacity: .45; } }
+
+/* ---------- État vide ---------- */
+.vide {
+  display: grid;
+  justify-items: center;
+  gap: .7rem;
+  color: var(--gris);
+  text-align: center;
+  padding: 2.5rem 1rem;
+  border: 2px dashed var(--sable-fonce);
+  border-radius: 4px;
+}
+.vide p { margin: 0; }
+
+/* ================================================================
+   Grand écran — c'est ici que tout se joue
+   ================================================================ */
+
+/* Tablette : deux colonnes deviennent possibles */
+@media (min-width: 640px) {
+  .hero { padding: 3rem 1.5rem 0; }
+  .hero-chiffres { grid-template-columns: repeat(4, 1fr); }
+  .bloc-inscription { grid-template-columns: 1fr auto; }
+  .bouton.large-auto { width: auto; }
+  .bloc-yonni { grid-template-columns: 1fr auto; padding: 1.8rem; }
+  .bloc-yonni-dessin { display: block; }
+}
+
+/* Ordinateur : la barre du bas laisse la place à une navigation d'en-tête */
+@media (min-width: 900px) {
+  :root { --tabs: 0px; }
+
+  .onglets { display: none; }
+
+  .nav-large {
+    display: flex;
+    gap: .2rem;
+    margin-left: 1.2rem;
+    flex: 1;
+  }
+  .nav-large a {
+    color: #cfc8bc;
+    text-decoration: none;
+    font-weight: 600;
+    font-size: .95rem;
+    padding: .45rem .8rem;
+    border-radius: 3px;
+    border-bottom: 3px solid transparent;
+    transition: color .12s ease, border-color .12s ease;
+  }
+  .nav-large a:hover { color: var(--papier); }
+  .nav-large a.actif {
+    color: var(--papier);
+    border-bottom-color: var(--safran);
+  }
+
+  .bandeau { padding-left: 1.5rem; padding-right: 1.5rem; }
+
+  /* Le conteneur respire : 720 px au milieu d'un écran de 1920 était une colonne perdue */
+  .contenu { max-width: 860px; padding: 1.5rem 1.5rem 3rem; }
+  .contenu.large { max-width: 1180px; }
+
+  .filtres { margin: 0 -1.5rem 1.2rem; padding-left: 1.5rem; padding-right: 1.5rem; }
+
+  h1.titre-page { font-size: 2.1rem; }
+  .section { margin: 3rem 0; }
+}
+
+/* Très grand écran : une colonne de plus, pas des cartes étirées */
+@media (min-width: 1280px) {
+  .contenu.large { max-width: 1280px; }
+  .hero { padding: 4rem 2rem 0; }
+  .hero-dedans, .hero-chiffres { max-width: 1180px; }
+  .tuiles { grid-template-columns: repeat(6, 1fr); }
+}
+
+/* ---------- Respect du réglage « moins d'animations » ---------- */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: .01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .01ms !important;
+  }
+}
+
+/* ---------- Corrections vues à l'écran ---------- */
+
+/* Sur une carte haute, une photo plein cadre dans une colonne de 76 px ne montre
+   qu'une lamelle du visage. On la ramène à un médaillon, posé sur la peinture. */
+.panneau .peinture { justify-content: flex-start; padding-top: .75rem; }
+.portrait {
+  position: static;
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid rgba(255, 255, 255, .85);
+  display: block;
+  flex: none;
+}
+/* Avec photo, les initiales deviennent inutiles : le nom est juste à côté */
+.panneau .peinture:has(.portrait) .initiales { display: none; }
+
+/* Un champ de recherche de 1200 px de large ne se lit pas mieux qu'un de 520 */
+.champ-recherche { max-width: 520px; }
+
+/* Très petit écran : le bouton passe sous le champ plutôt que de l'écraser */
+@media (max-width: 400px) {
+  .hero-recherche { flex-wrap: wrap; padding: .5rem; }
+  .hero-recherche input { flex: 1 1 100%; padding-left: .2rem; }
+  .hero-recherche .bouton { flex: 1 1 100%; }
+}
+
+/* Sur grand écran, la feuille de la carte s'étirait sur toute la largeur : le nom
+   à gauche, la présence à 1400 px à droite. On recentre son contenu. */
+@media (min-width: 900px) {
+  .feuille > * { max-width: 1180px; margin-inline: auto; }
+  .feuille .poignee { display: none; }
+}
+
+/* Le médaillon de la feuille garde sa taille propre, plus petite que sur les cartes */
+.feuille .portrait { width: 100%; height: 100%; border: 0; border-radius: inherit; }

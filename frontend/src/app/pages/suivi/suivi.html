@@ -1,0 +1,82 @@
+<main class="contenu">
+  <h1 class="titre-page enseigne">Suivre ma demande</h1>
+  <p class="sous-titre">Entrez le code reçu après l'envoi.</p>
+
+  <form class="formulaire" (submit)="soumettre(champ.value, $event)" style="margin-bottom:1.2rem">
+    <label>
+      Code de suivi
+      <input #champ [value]="saisie()" placeholder="DK7M2PQX4" autocapitalize="characters"
+             style="font-family:Anton,monospace;font-size:1.3rem;letter-spacing:.14em" />
+    </label>
+    <button type="submit" class="bouton large" [disabled]="enCours()">
+      {{ enCours() ? 'Recherche…' : 'Voir où ça en est' }}
+    </button>
+  </form>
+
+  @if (erreur()) { <p class="erreur">{{ erreur() }}</p> }
+
+  @if (resultat(); as r) {
+    <section class="bloc">
+      <h2 class="enseigne">{{ r.type === 'course' ? 'Course Yonni la' : 'Demande d\'artisan' }}</h2>
+      <p style="margin:0 0 .2rem">{{ r.resume }}</p>
+      <p class="sous-titre" style="margin:0">Envoyée le {{ r.creeLe | date: 'd MMMM à HH:mm' }}</p>
+
+      <!-- Les quatre étapes dans l'ordre : c'est bien une suite, pas une liste -->
+      <ol class="etapes">
+        @for (e of etapes; track e.cle; let i = $index) {
+          <li [class.faite]="i <= etapeActuelle()" [class.courante]="i === etapeActuelle()">
+            {{ e.nom }}
+          </li>
+        }
+      </ol>
+
+      @if (r.prixEstime) {
+        <p style="margin:.6rem 0 0">Prix annoncé : <strong>{{ fcfa(r.prixEstime) }}</strong></p>
+      }
+    </section>
+
+    @if (r.intervenant; as p) {
+      <article class="panneau" [style.--teinte]="teinte(p.famille)">
+        <div class="peinture">
+          @if (p.photo) {
+            <img class="portrait" [src]="urlPhoto(p.photo)" [alt]="'Photo de ' + p.nom"
+                 loading="lazy" decoding="async" />
+          } @else {
+            <app-glyphe [nom]="p.cle" [taille]="30" />
+            <span class="initiales">{{ initiales(p.nom) }}</span>
+          }
+        </div>
+        <div class="corps">
+          <h2 class="nom enseigne">{{ p.nom }}</h2>
+          <div class="faits">
+            <span class="presence" [class.en-ligne]="estEnLigne(p.derniereActivite)">
+              {{ estEnLigne(p.derniereActivite) ? 'En ligne' : 'Hors ligne' }}
+            </span>
+            @if (distanceIntervenant(); as d) {
+              <span class="distance">{{ formatDistance(d) }} <small>· {{ minutesTrajet(d) }} min</small></span>
+            }
+          </div>
+          @if (!geo.position()) {
+            <p class="sous-titre" style="margin:0 0 .5rem">
+              Activez votre position en haut pour voir la distance en direct.
+            </p>
+          }
+          <div class="actions">
+            @if (p.telephone) {
+              <a class="bouton" [href]="'tel:' + p.telephone">Appeler</a>
+              <a class="bouton whatsapp" [href]="lienWhatsapp(p.telephone)" target="_blank" rel="noopener">WhatsApp</a>
+            }
+            <button type="button" class="bouton creux" (click)="rafraichir()">Actualiser</button>
+          </div>
+        </div>
+      </article>
+    } @else {
+      <p class="vide">Personne n'a encore pris cette demande. Réessayez dans quelques minutes.</p>
+    }
+  } @else if (!erreur() && !enCours()) {
+    <p class="vide">
+      Pas encore de code ? <a routerLink="/">Trouvez un artisan</a> ou
+      <a routerLink="/course">demandez une course</a>.
+    </p>
+  }
+</main>

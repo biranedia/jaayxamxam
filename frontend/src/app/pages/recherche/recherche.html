@@ -1,0 +1,159 @@
+<main class="contenu large">
+  <h1 class="titre-page enseigne">Trouvez un artisan</h1>
+  <p class="sous-titre">
+    @if (geo.position()) {
+      {{ nombreEnLigne() }} {{ nombreEnLigne() > 1 ? 'artisans disponibles' : 'artisan disponible' }} maintenant autour de vous.
+    } @else {
+      Activez votre position pour voir qui travaille près de chez vous.
+    }
+  </p>
+
+  <!-- Les filtres restent visibles quand on fait défiler une longue liste -->
+  <div class="filtres">
+    <div class="champ-recherche">
+      <app-glyphe nom="loupe" [taille]="18" />
+      <input type="search" [value]="recherche()" (input)="chercher($any($event.target).value)"
+             placeholder="Chercher un métier : plombier, ménage…" aria-label="Chercher un métier" />
+      @if (recherche()) {
+        <button type="button" class="effacer" (click)="chercher('')" aria-label="Effacer la recherche">×</button>
+      }
+    </div>
+
+    <!-- La couleur dit la famille, le dessin dit le métier -->
+    <div class="rangee-puces" role="group" aria-label="Familles de métiers">
+      <button type="button" class="puce" [attr.aria-pressed]="!filtre()" (click)="toutVoir()">
+        Tous
+      </button>
+      @for (f of familles; track f.cle) {
+        <button type="button" class="puce" [attr.aria-pressed]="familleChoisie() === f.cle"
+                [style.--teinte]="teinte(f.cle)" [class.teintee]="familleChoisie() === f.cle"
+                (click)="choisirFamille(f.cle)">
+          {{ f.nom }}
+        </button>
+      }
+    </div>
+
+    @if (metiersProposes().length > 0) {
+      <div class="rangee-puces" role="group" aria-label="Métiers">
+        @for (m of metiersProposes(); track m.id) {
+          <button type="button" class="puce" [attr.aria-pressed]="metierId() === m.id"
+                  (click)="choisirMetier(m.id)">
+            <app-glyphe [nom]="m.icone ?? 'defaut'" [taille]="17" />{{ m.nom }}
+          </button>
+        }
+      </div>
+    } @else if (recherche().trim()) {
+      <p class="sous-titre">Aucun métier ne correspond à « {{ recherche() }} ».</p>
+    }
+
+    <label class="champ-quartier">
+      Quartier
+      <select [value]="zoneId() ?? ''" (change)="choisirZone($any($event.target).value)">
+        <option value="">Tous les quartiers</option>
+        @for (z of zones(); track z.id) {
+          <option [value]="z.id">{{ z.quartier }} ({{ z.ville }})</option>
+        }
+      </select>
+    </label>
+  </div>
+
+  <!-- Ce qui est filtré, en clair, avec de quoi l'annuler -->
+  @if (filtre()) {
+    <div class="resume-filtres">
+      @if (metierChoisi(); as m) { <span class="etiquette">{{ m.nom }}</span> }
+      @if (zoneChoisie(); as z) { <span class="etiquette">{{ z.quartier }}</span> }
+      <button type="button" class="lien-fantome sombre" (click)="toutVoir()">Tout effacer</button>
+    </div>
+  }
+
+  @if (contacts.erreur()) { <p class="erreur">{{ contacts.erreur() }}</p> }
+
+  @if (erreur()) {
+    <p class="erreur">{{ erreur() }}</p>
+  } @else if (chargement()) {
+    <!-- Squelettes plutôt qu'un mot « Chargement… » : la page ne saute pas quand les données arrivent -->
+    <section class="liste grille" aria-busy="true" aria-label="Chargement des artisans">
+      @for (s of squelettes; track s) {
+        <article class="panneau squelette" aria-hidden="true">
+          <div class="peinture"></div>
+          <div class="corps">
+            <span class="barre b1"></span><span class="barre b2"></span>
+            <span class="barre b3"></span><span class="barre b4"></span>
+          </div>
+        </article>
+      }
+    </section>
+  } @else if (resultats().length === 0) {
+    <div class="vide">
+      <app-glyphe nom="loupe" [taille]="38" />
+      <p>Aucun artisan ne correspond à cette recherche.</p>
+      @if (filtre()) {
+        <button type="button" class="bouton creux" (click)="toutVoir()">Enlever les filtres</button>
+      } @else {
+        <a class="bouton creux" routerLink="/inscription">Être le premier inscrit</a>
+      }
+    </div>
+  } @else {
+    <p class="compte-resultats">
+      <strong>{{ resultats().length }}</strong>
+      {{ resultats().length > 1 ? 'artisans trouvés' : 'artisan trouvé' }}
+      @if (geo.position()) { <span>· triés du plus proche au plus loin</span> }
+    </p>
+
+    <section class="liste grille">
+      @for (a of resultats(); track a.id) {
+        <article class="panneau" [style.--teinte]="teinte(a.metierFamille)">
+          <div class="peinture">
+            @if (a.photo) {
+              <img class="portrait" [src]="urlPhoto(a.photo)" [alt]="'Photo de ' + a.nom"
+                   loading="lazy" decoding="async" />
+            } @else {
+              <app-glyphe [nom]="a.metierIcone ?? 'defaut'" [taille]="30" />
+              <span class="initiales">{{ initiales(a.nom) }}</span>
+            }
+          </div>
+
+          <div class="corps">
+            <h2 class="nom enseigne">
+              <a [routerLink]="['/artisan', a.id]">{{ a.nom }}</a>
+              @if (a.verifie) {
+                <span class="sceau"><app-glyphe nom="sceau" [taille]="12" />Vérifié</span>
+              }
+            </h2>
+            <p class="metier-lieu">{{ a.metier }} · {{ a.quartier }}, {{ a.ville }}</p>
+
+            <div class="faits">
+              <span class="presence" [class.en-ligne]="estEnLigne(a.derniereActivite)">
+                {{ estEnLigne(a.derniereActivite) ? 'En ligne' : 'Hors ligne' }}
+              </span>
+              @if (a.distanceM !== undefined) {
+                <span class="distance">{{ formatDistance(a.distanceM) }} <small>d'ici</small></span>
+              }
+            </div>
+
+            <div class="faits">
+              @if (a.noteMoyenne) {
+                <span class="etoiles">{{ etoiles(a.noteMoyenne) }}<span>{{ a.nombreAvis }} avis</span></span>
+              } @else {
+                <span class="sans-avis">Pas encore d'avis</span>
+              }
+              @if (a.tarifIndicatif) {
+                <span class="tarif">dès {{ fcfa(a.tarifIndicatif) }}</span>
+              }
+            </div>
+
+            @if (a.description) { <p class="description">{{ a.description }}</p> }
+
+            <div class="actions">
+              <button type="button" class="bouton" (click)="contacts.appeler('artisan', a.id)"
+                      [disabled]="contacts.enCours() === 'artisan:' + a.id">Appeler</button>
+              <button type="button" class="bouton whatsapp" (click)="contacts.whatsapp('artisan', a.id)"
+                      [disabled]="contacts.enCours() === 'artisan:' + a.id">WhatsApp</button>
+            </div>
+            <a class="lien-fiche" [routerLink]="['/artisan', a.id]">Sa fiche et ses avis</a>
+          </div>
+        </article>
+      }
+    </section>
+  }
+</main>

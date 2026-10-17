@@ -1,0 +1,69 @@
+<main class="contenu">
+  <h1 class="titre-page enseigne">Administration</h1>
+
+  @if (!ouvert()) {
+    <p class="sous-titre">
+      Jeton défini par la variable <code>ADMIN_TOKEN</code> sur le serveur. Il n'est pas conservé :
+      il faudra le ressaisir à chaque ouverture.
+    </p>
+    @if (erreur()) { <p class="erreur">{{ erreur() }}</p> }
+
+    <form class="formulaire" (submit)="entrer(champ.value, $event)">
+      <label>
+        Jeton d'administration
+        <input #champ type="password" autocomplete="off" [value]="jeton()" />
+      </label>
+      <button type="submit" class="bouton large" [disabled]="enCours()">
+        {{ enCours() ? 'Vérification…' : 'Ouvrir' }}
+      </button>
+    </form>
+  } @else if (resume(); as r) {
+    @if (erreur()) { <p class="erreur">{{ erreur() }}</p> }
+    @if (message()) { <p class="succes" style="padding:.6rem .8rem">{{ message() }}</p> }
+
+    <div class="chiffres">
+      <div><span class="nombre">{{ r.file.length }}</span><small>en attente</small></div>
+      <div><span class="nombre">{{ r.artisansActifs }}</span><small>artisans visibles</small></div>
+      <div><span class="nombre">{{ r.livreursActifs }}</span><small>livreurs visibles</small></div>
+    </div>
+
+    <h2 class="enseigne" style="margin:1.2rem 0 .6rem">File d'attente</h2>
+
+    @if (r.file.length === 0) {
+      <p class="vide">Aucune inscription en attente. Tout est à jour.</p>
+    } @else {
+      <section class="liste">
+        @for (p of r.file; track p.type + p.id) {
+          <article class="bloc">
+            <div style="display:flex;gap:.7rem;align-items:flex-start">
+              @if (p.photo) {
+                <img [src]="urlPhoto(p.photo)" [alt]="'Photo de ' + p.nom" class="vignette" />
+              }
+              <div style="flex:1;min-width:0">
+                <h3 class="enseigne" style="margin:0;font-size:1.1rem">{{ p.nom }}</h3>
+                <p class="sous-titre" style="margin:.1rem 0">{{ p.type }} · {{ p.detail }}</p>
+                <p style="margin:.1rem 0"><a [href]="'tel:' + p.telephone">{{ p.telephone }}</a></p>
+                <p class="sous-titre" style="margin:.1rem 0">
+                  Inscrit le {{ p.creeLe | date: 'd MMMM à HH:mm' }}
+                </p>
+              </div>
+            </div>
+
+            <!-- Appeler avant de valider : c'est la seule vérification tant que le SMS n'existe pas -->
+            <div class="actions" style="margin-top:.6rem">
+              <button type="button" class="bouton" (click)="agir(p, 'valider')" [disabled]="enCours()">
+                Rendre visible
+              </button>
+              <button type="button" class="bouton cobalt" (click)="agir(p, 'verifier')" [disabled]="enCours()">
+                Badge vérifié
+              </button>
+              <button type="button" class="bouton creux" (click)="agir(p, 'refuser')" [disabled]="enCours()">
+                Écarter
+              </button>
+            </div>
+          </article>
+        }
+      </section>
+    }
+  }
+</main>

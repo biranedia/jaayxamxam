@@ -1,0 +1,139 @@
+<!-- ---------- Enseigne d'entrée ---------- -->
+<section class="hero">
+  <div class="hero-dedans">
+    <p class="hero-oeil">Dakar et sa banlieue</p>
+    <h1 class="hero-titre enseigne">
+      Le bon artisan,<br />juste à côté de chez vous.
+    </h1>
+    <p class="hero-texte">
+      Maçons, plombières, couturiers, mécaniciens, livreurs : des travailleurs de votre
+      quartier, leur distance en temps réel, leur numéro en un clic.
+    </p>
+
+    <form class="hero-recherche" (submit)="lancerRecherche($event)" role="search">
+      <app-glyphe nom="loupe" [taille]="20" />
+      <input type="search" [value]="recherche()" (input)="recherche.set($any($event.target).value)"
+             placeholder="De quoi avez-vous besoin ? plombier, ménage, moto…"
+             aria-label="Chercher un métier" />
+      <button type="submit" class="bouton">Chercher</button>
+    </form>
+
+    <div class="hero-liens">
+      <button type="button" class="lien-fantome" (click)="localiser()"
+              [disabled]="geo.etat() === 'recherche'">
+        <app-glyphe [nom]="geo.etat() === 'ok' ? 'position' : 'cible'" [taille]="15" />
+        {{ geo.etat() === 'ok' ? 'Position activée' : 'Trier par proximité' }}
+      </button>
+      <a class="lien-fantome" routerLink="/carte">
+        <app-glyphe nom="carte" [taille]="15" />Voir sur la carte
+      </a>
+    </div>
+  </div>
+
+  <!-- Chiffres réels, pas des promesses : ils viennent de l'API -->
+  <dl class="hero-chiffres">
+    <div>
+      <dt>Artisans inscrits</dt>
+      <dd class="chiffre">{{ chargement() ? '—' : artisans().length }}</dd>
+    </div>
+    <div>
+      <dt>Livreurs Yonni la</dt>
+      <dd class="chiffre">{{ chargement() ? '—' : livreurs().length }}</dd>
+    </div>
+    <div>
+      <dt>Métiers couverts</dt>
+      <dd class="chiffre">{{ chargement() ? '—' : metiers().length }}</dd>
+    </div>
+    <div>
+      <dt>En ligne maintenant</dt>
+      <dd class="chiffre" [class.vivant]="nombreEnLigne() > 0">
+        {{ chargement() ? '—' : nombreEnLigne() }}
+      </dd>
+    </div>
+  </dl>
+</section>
+
+<main class="contenu large">
+  <!-- ---------- Les familles de métiers ---------- -->
+  <section class="section">
+    <h2 class="titre-section enseigne">Par métier</h2>
+    <p class="sous-titre">Choisissez une famille, affinez ensuite métier par métier.</p>
+
+    <div class="tuiles">
+      @for (f of familles; track f.cle) {
+        <a class="tuile" [style.--teinte]="teinte(f.cle)"
+           [routerLink]="['/artisans']" [queryParams]="{ famille: f.cle }">
+          <app-glyphe [nom]="glypheFamille(f.cle)" [taille]="34" />
+          <span class="tuile-nom enseigne">{{ f.nom }}</span>
+          @if (comptesFamille()[f.cle]; as n) {
+            <span class="tuile-compte">{{ n }} {{ n > 1 ? 'métiers' : 'métier' }}</span>
+          }
+        </a>
+      }
+      <a class="tuile tuile-tous" routerLink="/artisans">
+        <app-glyphe nom="loupe" [taille]="34" />
+        <span class="tuile-nom enseigne">Tout voir</span>
+        <span class="tuile-compte">{{ metiers().length }} métiers</span>
+      </a>
+    </div>
+  </section>
+
+  <!-- ---------- Yonni la ---------- -->
+  <section class="section">
+    <div class="bloc-yonni">
+      <div>
+        <p class="hero-oeil">Yonni la</p>
+        <h2 class="titre-section enseigne">Un colis à faire partir ?</h2>
+        <p>
+          Motos, voitures, camionnettes et tricycles. Vous donnez le départ et l'arrivée,
+          le prix est calculé avant que vous ne validiez — pas de négociation au téléphone.
+        </p>
+        <div class="actions">
+          <a class="bouton" routerLink="/course">Demander une course</a>
+          <a class="bouton creux" routerLink="/yonni">Voir les livreurs</a>
+        </div>
+      </div>
+      <div class="bloc-yonni-dessin" aria-hidden="true">
+        <app-glyphe nom="moto" [taille]="120" />
+      </div>
+    </div>
+  </section>
+
+  <!-- ---------- Comment ça marche ---------- -->
+  <section class="section">
+    <h2 class="titre-section enseigne">Comment ça marche</h2>
+    <ol class="etapes-accueil">
+      <li>
+        <span class="etape-numero enseigne">1</span>
+        <h3>Vous cherchez</h3>
+        <p>Par métier ou par quartier. Avec votre position, les plus proches passent devant.</p>
+      </li>
+      <li>
+        <span class="etape-numero enseigne">2</span>
+        <h3>Vous appelez</h3>
+        <p>Le numéro s'affiche au moment du clic, par téléphone ou WhatsApp. Aucun compte à créer.</p>
+      </li>
+      <li>
+        <span class="etape-numero enseigne">3</span>
+        <h3>Vous suivez</h3>
+        <p>Chaque demande reçoit un code à neuf caractères. Il suffit pour retrouver son état.</p>
+      </li>
+    </ol>
+  </section>
+
+  <!-- ---------- Appel aux travailleurs ---------- -->
+  <section class="section">
+    <div class="bloc-inscription">
+      <div>
+        <h2 class="titre-section enseigne">Vous êtes artisan ou livreur ?</h2>
+        <p>
+          L'inscription est gratuite et prend deux minutes. Vous recevez un code de gestion
+          pour ajouter votre photo et mettre votre fiche à jour.
+        </p>
+      </div>
+      <a class="bouton large-auto" routerLink="/inscription">
+        <app-glyphe nom="sceau" [taille]="18" />Proposer mes services
+      </a>
+    </div>
+  </section>
+</main>

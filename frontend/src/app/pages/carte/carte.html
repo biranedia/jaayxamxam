@@ -1,0 +1,52 @@
+<main class="contenu pleine-page">
+  @if (tuilesAbsentes()) {
+    <p class="avis-carte">Fond de carte indisponible : la liste ci-dessous reste utilisable.</p>
+  } @else {
+    <p class="avis-carte">
+      Points pleins : au travail maintenant. Points pâles : hors ligne. Fond de carte © OpenStreetMap
+    </p>
+  }
+
+  <div #carte class="zone-carte" [class.hors-ligne]="tuilesAbsentes()" role="application"
+       aria-label="Carte des artisans et livreurs"></div>
+
+  <section class="feuille">
+    <div class="poignee" aria-hidden="true"></div>
+
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:1rem;margin-bottom:.4rem">
+      <h1 class="enseigne" style="font-size:1.15rem;margin:0">
+        {{ proches().length }} autour de vous
+      </h1>
+      <button type="button" class="puce" (click)="centrerSurMoi()">
+        <app-glyphe nom="cible" [taille]="15" />Me centrer
+      </button>
+    </div>
+
+    @for (p of proches(); track p.cle + p.id) {
+      <a class="ligne-proche" [style.--teinte]="teinte(p.famille)"
+         [routerLink]="p.lien ?? '/yonni'">
+        <span class="pastille">
+          @if (p.photo) {
+            <img class="portrait" [src]="urlPhoto(p.photo)" alt="" loading="lazy" decoding="async" />
+          } @else {
+            <app-glyphe [nom]="p.cle" [taille]="20" />
+          }
+        </span>
+        <span class="infos">
+          <strong>{{ p.nom }}</strong>
+          <small>{{ p.sousTitre }}</small>
+        </span>
+        <span style="text-align:right">
+          @if (p.distanceM !== undefined) {
+            <span class="distance">{{ formatDistance(p.distanceM) }}</span>
+          }
+          <span class="presence" [class.en-ligne]="p.enLigne" style="font-size:.78rem">
+            {{ p.enLigne ? 'En ligne' : 'Hors ligne' }}
+          </span>
+        </span>
+      </a>
+    } @empty {
+      <p class="vide">Personne n'a encore partagé sa position.</p>
+    }
+  </section>
+</main>

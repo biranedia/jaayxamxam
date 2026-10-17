@@ -1,0 +1,25 @@
+# Base PostgreSQL pour le développement local : docker compose up -d
+#
+# Le nom du projet est fixé ici : sans cette ligne, Docker le déduit du dossier
+# qui contient ce fichier, et le volume de données changerait de nom à chaque
+# déplacement — c'est-à-dire une base vide, et les migrations à rejouer.
+name: jaayxamxam
+
+services:
+  db:
+    image: postgres:16
+    container_name: jaayxamxam-db
+    environment:
+      POSTGRES_DB: jaayxamxam
+      POSTGRES_USER: jaayxamxam
+      POSTGRES_PASSWORD: jaayxamxam_dev
+    ports:
+      # 5433 cote machine, pas 5432 : un PostgreSQL deja installe sur le poste
+      # occupe souvent 5432, et le conflit se manifeste par une erreur
+      # d'authentification trompeuse (on parle alors a l'autre serveur).
+      - "5433:5432"
+    volumes:
+      - jaayxamxam-data:/var/lib/postgresql/data
+
+volumes:
+  jaayxamxam-data:

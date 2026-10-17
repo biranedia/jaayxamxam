@@ -1,0 +1,12 @@
+# Fins de ligne normalisées. Sans cela, un fichier édité sous Windows puis sous
+# Linux ressort modifié en entier, et chaque différence devient illisible.
+* text=auto eol=lf
+
+# Ces trois-là doivent rester en CRLF : Windows ne les exécute pas autrement.
+*.cmd text eol=crlf
+*.bat text eol=crlf
+*.ps1 text eol=crlf
+
+*.png binary
+*.jpg binary
+*.ico binary

@@ -1,0 +1,75 @@
+<main class="contenu">
+  @if (reponse(); as r) {
+    <section class="succes">
+      <h1 class="enseigne" style="margin:0 0 .3rem">Demande envoyée</h1>
+      <p style="margin:0">Gardez ce code : il sert à suivre la demande et à noter l'artisan.</p>
+      <p class="code">{{ r.codeSuivi }}</p>
+      <div class="actions">
+        <a class="bouton" routerLink="/suivi" [queryParams]="{ code: r.codeSuivi }">Suivre ma demande</a>
+        <a class="bouton creux" routerLink="/">Retour</a>
+      </div>
+    </section>
+  } @else {
+    <h1 class="titre-page enseigne">Demander un service</h1>
+    <p class="sous-titre">
+      @if (artisanId()) {
+        Votre demande partira directement à l'artisan choisi.
+      } @else {
+        Les artisans du métier et du quartier choisis recevront votre demande.
+      }
+    </p>
+
+    <form [formGroup]="form" (ngSubmit)="envoyer()" class="formulaire">
+      <label>
+        Métier
+        <select formControlName="metierId">
+          <option value="">Choisir…</option>
+          @for (m of metiers(); track m.id) {
+            <option [value]="m.id">{{ m.nom }}</option>
+          }
+        </select>
+      </label>
+
+      <label>
+        Quartier
+        <select formControlName="zoneId">
+          <option value="">Choisir…</option>
+          @for (z of zones(); track z.id) {
+            <option [value]="z.id">{{ z.quartier }} ({{ z.ville }})</option>
+          }
+        </select>
+      </label>
+
+      <label>
+        Décrivez le travail
+        <textarea formControlName="description" rows="4"
+                  placeholder="Fuite sous l'évier de la cuisine depuis hier"></textarea>
+      </label>
+
+      <label class="case">
+        <input type="checkbox" formControlName="urgente" />
+        C'est urgent
+      </label>
+
+      <label>
+        Votre nom
+        <input formControlName="clientNom" autocomplete="name" />
+      </label>
+
+      <label>
+        Votre téléphone
+        <input formControlName="clientTelephone" type="tel" inputmode="tel" autocomplete="tel"
+               placeholder="77 000 00 00" />
+        @if (form.controls.clientTelephone.touched && form.controls.clientTelephone.invalid) {
+          <span class="champ-erreur">Numéro à 9 chiffres, avec ou sans +221.</span>
+        }
+      </label>
+
+      @if (erreur()) { <p class="erreur">{{ erreur() }}</p> }
+
+      <button type="submit" class="bouton large" [disabled]="form.invalid || enCours()">
+        {{ enCours() ? 'Envoi…' : 'Envoyer la demande' }}
+      </button>
+    </form>
+  }
+</main>

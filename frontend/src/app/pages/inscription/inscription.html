@@ -1,0 +1,211 @@
+<main class="contenu">
+  @if (reponse(); as r) {
+    <section class="succes">
+      <h1 class="enseigne" style="margin:0 0 .3rem">Inscription envoyée</h1>
+      <p style="margin:0">
+        Gardez ce code : c'est lui qui vous permettra de modifier votre profil.
+      </p>
+      <p class="code">{{ r.codeGestion }}</p>
+      <p>
+        Votre profil n'est pas encore visible. Nous vous appelons pour vérifier votre numéro et votre
+        métier, puis il apparaît dans la recherche. Comptez un à deux jours.
+      </p>
+      <a class="bouton" routerLink="/">Voir la plateforme</a>
+    </section>
+
+    <!-- Deuxième temps : la photo. Facultative, mais c'est elle qui fait appeler. -->
+    <section class="bloc">
+      <h2 class="enseigne">Votre photo</h2>
+      @if (photoEnvoyee()) {
+        <p>Photo enregistrée. Elle apparaîtra sur votre fiche une fois votre profil validé.</p>
+      } @else {
+        <p class="sous-titre">
+          Un visage, ou une photo de votre travail. Les profils avec photo sont appelés bien plus
+          souvent. Vous pourrez la changer plus tard avec votre code.
+        </p>
+
+        @if (photoErreur()) { <p class="erreur">{{ photoErreur() }}</p> }
+
+        <label>
+          Choisir une photo
+          <input type="file" accept="image/jpeg,image/png" (change)="choisirPhoto($event)" />
+        </label>
+
+        @if (photoApercu(); as apercu) {
+          <img [src]="apercu" alt="Aperçu de votre photo" class="apercu-photo" />
+          <button type="button" class="bouton large" (click)="envoyerPhoto()" [disabled]="photoEnCours()">
+            {{ photoEnCours() ? 'Envoi…' : 'Envoyer la photo' }}
+          </button>
+        }
+      }
+    </section>
+  } @else if (!choix()) {
+    <h1 class="titre-page enseigne">Proposez vos services</h1>
+    <p class="sous-titre">
+      L'inscription est gratuite. Vous décidez de vos tarifs et vous répondez aux demandes qui vous
+      intéressent.
+    </p>
+
+    <!-- Deux métiers, deux parcours : on demande lequel avant tout le reste -->
+    <button type="button" class="panneau choix-metier" [style.--teinte]="teinte('batiment')"
+            (click)="choisir('artisan')">
+      <span class="peinture"><app-glyphe nom="plombier" [taille]="30" /></span>
+      <span class="corps">
+        <span class="nom enseigne">Je suis artisan</span>
+        <span class="metier-lieu">
+          Maçon, plombier, électricien, coiffure, ménage… 25 métiers possibles.
+        </span>
+      </span>
+    </button>
+
+    <button type="button" class="panneau choix-metier" [style.--teinte]="teinte('moto')"
+            (click)="choisir('livreur')">
+      <span class="peinture"><app-glyphe nom="moto" [taille]="30" /></span>
+      <span class="corps">
+        <span class="nom enseigne">Je livre ou je transporte</span>
+        <span class="metier-lieu">
+          Moto, tricycle, voiture ou camionnette. Vous rejoignez Yonni la.
+        </span>
+      </span>
+    </button>
+
+    <p class="sous-titre" style="margin-top:1.2rem">
+      Vous avez déjà un profil ? Appelez-nous avec le code reçu à l'inscription.
+    </p>
+  } @else if (choix() === 'artisan') {
+    <p style="margin:.2rem 0 .8rem">
+      <button type="button" class="lien-retour" (click)="revenir()">← Changer de métier</button>
+    </p>
+    <h1 class="titre-page enseigne">Artisan</h1>
+    <p class="sous-titre">Ces informations apparaîtront sur votre fiche.</p>
+
+    @if (erreur()) { <p class="erreur">{{ erreur() }}</p> }
+
+    <form class="formulaire" [formGroup]="formArtisan" (ngSubmit)="envoyerArtisan()">
+      <label>
+        Votre nom
+        <input formControlName="nom" autocomplete="name" placeholder="Moussa Ndiaye" />
+        @if (formArtisan.controls.nom.touched && formArtisan.controls.nom.invalid) {
+          <span class="champ-erreur">Votre nom est obligatoire.</span>
+        }
+      </label>
+
+      <label>
+        Votre téléphone
+        <input formControlName="telephone" type="tel" inputmode="tel" autocomplete="tel"
+               placeholder="77 000 00 00" />
+        <span class="aide">C'est ce numéro que les clients appelleront.</span>
+        @if (formArtisan.controls.telephone.touched && formArtisan.controls.telephone.invalid) {
+          <span class="champ-erreur">Numéro à 9 chiffres, avec ou sans +221.</span>
+        }
+      </label>
+
+      <label>
+        Votre métier
+        <select formControlName="metierId">
+          <option value="">Choisir…</option>
+          @for (f of familles; track f.cle) {
+            <optgroup [label]="f.nom">
+              @for (m of metiers(); track m.id) {
+                @if (m.famille === f.cle) { <option [value]="m.id">{{ m.nom }}</option> }
+              }
+            </optgroup>
+          }
+        </select>
+      </label>
+
+      <label>
+        Où travaillez-vous ?
+        <select formControlName="zoneId">
+          <option value="">Choisir un quartier…</option>
+          @for (z of zones(); track z.id) {
+            <option [value]="z.id">{{ z.quartier }} ({{ z.ville }})</option>
+          }
+        </select>
+      </label>
+
+      <label>
+        Années de métier
+        <input formControlName="anneesExperience" type="number" inputmode="numeric" min="0" max="70" />
+      </label>
+
+      <label>
+        Prix de départ (facultatif)
+        <input formControlName="tarifIndicatif" type="number" inputmode="numeric" min="0"
+               placeholder="5000" />
+        <span class="aide">En FCFA. Affiché comme « dès … » ; vous négociez ensuite.</span>
+      </label>
+
+      <label>
+        Ce que vous faites
+        <textarea formControlName="description" rows="3"
+                  placeholder="Fuites, WC, chauffe-eau. Je me déplace le jour même."></textarea>
+      </label>
+
+      <button type="submit" class="bouton large" [disabled]="enCours()">
+        {{ enCours() ? 'Envoi…' : "M'inscrire" }}
+      </button>
+    </form>
+  } @else {
+    <p style="margin:.2rem 0 .8rem">
+      <button type="button" class="lien-retour" (click)="revenir()">← Changer de métier</button>
+    </p>
+    <h1 class="titre-page enseigne">Livreur ou transporteur</h1>
+    <p class="sous-titre">Vous apparaîtrez dans Yonni la.</p>
+
+    @if (erreur()) { <p class="erreur">{{ erreur() }}</p> }
+
+    <form class="formulaire" [formGroup]="formLivreur" (ngSubmit)="envoyerLivreur()">
+      <fieldset>
+        <legend>Votre véhicule</legend>
+        <div class="rangee-puces">
+          @for (v of vehicules; track v.cle) {
+            <button type="button" class="puce"
+                    [attr.aria-pressed]="formLivreur.controls.vehicule.value === v.cle"
+                    (click)="choisirVehicule(v.cle)">
+              <app-glyphe [nom]="v.cle" [taille]="17" />{{ v.nom }}
+            </button>
+          }
+        </div>
+      </fieldset>
+
+      <label>
+        Votre nom
+        <input formControlName="nom" autocomplete="name" placeholder="Pape Sow" />
+        @if (formLivreur.controls.nom.touched && formLivreur.controls.nom.invalid) {
+          <span class="champ-erreur">Votre nom est obligatoire.</span>
+        }
+      </label>
+
+      <label>
+        Votre téléphone
+        <input formControlName="telephone" type="tel" inputmode="tel" autocomplete="tel"
+               placeholder="77 000 00 00" />
+        @if (formLivreur.controls.telephone.touched && formLivreur.controls.telephone.invalid) {
+          <span class="champ-erreur">Numéro à 9 chiffres, avec ou sans +221.</span>
+        }
+      </label>
+
+      <label>
+        Charge maximale
+        <input formControlName="chargeMaxKg" type="number" inputmode="numeric" min="1" max="5000" />
+        <span class="aide">En kilos. Proposée selon votre véhicule, à corriger si besoin.</span>
+      </label>
+
+      <label>
+        Prix au kilomètre (facultatif)
+        <input formControlName="prixParKm" type="number" inputmode="numeric" min="0" placeholder="300" />
+      </label>
+
+      <label>
+        Prix minimum d'une course (facultatif)
+        <input formControlName="prixMinimum" type="number" inputmode="numeric" min="0" placeholder="1000" />
+        <span class="aide">Laissez vide pour reprendre le tarif habituel de votre véhicule.</span>
+      </label>
+
+      <button type="submit" class="bouton cobalt large" [disabled]="enCours()">
+        {{ enCours() ? 'Envoi…' : "M'inscrire" }}
+      </button>
+    </form>
+  }
+</main>

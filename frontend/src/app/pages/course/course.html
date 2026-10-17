@@ -1,0 +1,100 @@
+<header class="banniere-yonni">
+  <h1 class="enseigne">Une course</h1>
+  <p>Dites d'où à où. Le prix s'affiche avant d'envoyer.</p>
+</header>
+
+<main class="contenu">
+  @if (reponse(); as r) {
+    <section class="succes">
+      <h2 class="enseigne" style="margin:0 0 .3rem">Course envoyée</h2>
+      <p style="margin:0">Gardez ce code : il sert à suivre le livreur et à le noter.</p>
+      <p class="code">{{ r.codeSuivi }}</p>
+      <p>Prix annoncé : <strong>{{ fcfa(r.prixEstime) }}</strong> pour {{ formatDistance(r.distanceM) }}.</p>
+      <div class="actions">
+        <a class="bouton cobalt" routerLink="/suivi" [queryParams]="{ code: r.codeSuivi }">Suivre la course</a>
+        <a class="bouton creux" routerLink="/yonni">Retour</a>
+      </div>
+    </section>
+  } @else {
+    @if (erreur()) { <p class="erreur">{{ erreur() }}</p> }
+
+    <form class="formulaire" [formGroup]="form" (ngSubmit)="envoyer()">
+      <fieldset>
+        <legend>Véhicule</legend>
+        <div class="rangee-puces">
+          @for (cle of cles; track cle) {
+            <button type="button" class="puce"
+                    [attr.aria-pressed]="form.controls.vehicule.value === cle"
+                    (click)="form.controls.vehicule.setValue(cle)">
+              <app-glyphe [nom]="cle" [taille]="17" />{{ tarifs[cle].nom }}
+            </button>
+          }
+        </div>
+      </fieldset>
+
+      <label>
+        Départ
+        <select formControlName="departZoneId">
+          <option value="">Choisir un quartier</option>
+          @for (z of zones(); track z.id) {
+            <option [value]="z.id">{{ z.quartier }} ({{ z.ville }})</option>
+          }
+        </select>
+      </label>
+
+      <label>
+        Destination
+        <select formControlName="destinationZoneId">
+          <option value="">Choisir un quartier</option>
+          @for (z of zones(); track z.id) {
+            <option [value]="z.id">{{ z.quartier }} ({{ z.ville }})</option>
+          }
+        </select>
+      </label>
+
+      <!-- Le prix apparaît dès que les deux quartiers sont choisis -->
+      @if (estimation(); as e) {
+        <div class="course-resume">
+          <div>
+            <span class="prix">{{ fcfa(e.prix) }}</span>
+            <small>Prix indicatif, à confirmer avec le livreur</small>
+          </div>
+          <div style="text-align:right">
+            <span class="prix">{{ formatDistance(e.metres) }}</span>
+            <small>environ {{ minutesTrajet(e.metres) }} min</small>
+          </div>
+        </div>
+      }
+
+      <label>
+        Point de repère
+        <input formControlName="precision" placeholder="En face de la pharmacie Guediawaye" />
+      </label>
+
+      <label>
+        Ce qu'il y a à transporter
+        <textarea formControlName="description" placeholder="Deux cartons, environ 15 kg"></textarea>
+      </label>
+
+      <label>
+        Votre nom
+        <input formControlName="clientNom" autocomplete="name" />
+        @if (form.controls.clientNom.touched && form.controls.clientNom.invalid) {
+          <span class="champ-erreur">Votre nom est obligatoire.</span>
+        }
+      </label>
+
+      <label>
+        Votre téléphone
+        <input formControlName="clientTelephone" inputmode="tel" placeholder="77 000 00 00" />
+        @if (form.controls.clientTelephone.touched && form.controls.clientTelephone.invalid) {
+          <span class="champ-erreur">Entrez un numéro sénégalais à 9 chiffres.</span>
+        }
+      </label>
+
+      <button type="submit" class="bouton cobalt large" [disabled]="enCours()">
+        {{ enCours() ? 'Envoi…' : 'Envoyer la course' }}
+      </button>
+    </form>
+  }
+</main>

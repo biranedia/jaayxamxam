@@ -1,0 +1,114 @@
+<header class="banniere-yonni">
+  <h1 class="enseigne">Yonni la</h1>
+  <p>Livreurs et transporteurs, de quartier en quartier.</p>
+</header>
+
+<main class="contenu large">
+  <a class="bouton cobalt large-auto" routerLink="/course" style="margin:.2rem 0 1rem">
+    Demander une course
+  </a>
+
+  <p class="sous-titre">
+    @if (geo.position()) {
+      {{ nombreEnLigne() }} {{ nombreEnLigne() > 1 ? 'livreurs en ligne' : 'livreur en ligne' }} autour de vous.
+    } @else {
+      Activez votre position pour voir les livreurs les plus proches.
+    }
+  </p>
+
+  <div class="rangee-puces" role="group" aria-label="Filtrer par véhicule">
+    <button type="button" class="puce" [attr.aria-pressed]="!vehicule()" (click)="choisirVehicule(undefined)">
+      Tous
+    </button>
+    @for (v of vehicules; track v.cle) {
+      <button type="button" class="puce" [attr.aria-pressed]="vehicule() === v.cle" (click)="choisirVehicule(v.cle)">
+        <app-glyphe [nom]="v.cle" [taille]="17" />{{ v.nom }}
+      </button>
+    }
+  </div>
+
+  @if (contacts.erreur()) { <p class="erreur">{{ contacts.erreur() }}</p> }
+
+  @if (erreur()) {
+    <p class="erreur">{{ erreur() }}</p>
+  } @else if (chargement()) {
+    <section class="liste grille" aria-busy="true" aria-label="Chargement des livreurs">
+      @for (s of squelettes; track s) {
+        <article class="panneau squelette" aria-hidden="true">
+          <div class="peinture"></div>
+          <div class="corps">
+            <span class="barre b1"></span><span class="barre b2"></span>
+            <span class="barre b3"></span><span class="barre b4"></span>
+          </div>
+        </article>
+      }
+    </section>
+  } @else if (resultats().length === 0) {
+    <div class="vide">
+      <app-glyphe nom="moto" [taille]="38" />
+      <p>Aucun livreur avec ce véhicule pour l'instant.</p>
+      <a class="bouton creux" routerLink="/inscription">Proposer mes services</a>
+    </div>
+  } @else {
+    <p class="compte-resultats">
+      <strong>{{ resultats().length }}</strong>
+      {{ resultats().length > 1 ? 'livreurs disponibles' : 'livreur disponible' }}
+    </p>
+
+    <section class="liste grille">
+      @for (l of resultats(); track l.id) {
+        <article class="panneau" [style.--teinte]="teinte(l.vehicule)">
+          <div class="peinture">
+            @if (l.photo) {
+              <img class="portrait" [src]="urlPhoto(l.photo)" [alt]="'Photo de ' + l.nom"
+                   loading="lazy" decoding="async" />
+            } @else {
+              <app-glyphe [nom]="l.vehicule" [taille]="30" />
+              <span class="initiales">{{ initiales(l.nom) }}</span>
+            }
+          </div>
+
+          <div class="corps">
+            <h2 class="nom enseigne">
+              {{ l.nom }}
+              @if (l.verifie) {
+                <span class="sceau"><app-glyphe nom="sceau" [taille]="12" />Vérifié</span>
+              }
+            </h2>
+            <p class="metier-lieu">Jusqu'à {{ l.chargeMaxKg }} kg · {{ fcfa(l.prixParKm) }}/km</p>
+
+            <div class="faits">
+              <span class="presence" [class.en-ligne]="estEnLigne(l.derniereActivite)">
+                {{ estEnLigne(l.derniereActivite) ? 'En ligne' : 'Hors ligne' }}
+              </span>
+              @if (l.distanceM !== undefined) {
+                <span class="distance">
+                  {{ formatDistance(l.distanceM) }} <small>· {{ minutesTrajet(l.distanceM) }} min</small>
+                </span>
+              }
+            </div>
+
+            <div class="faits">
+              @if (l.noteMoyenne) {
+                <span class="etoiles">{{ etoiles(l.noteMoyenne) }}<span>{{ l.nombreAvis }} avis</span></span>
+              } @else {
+                <span class="sans-avis">Pas encore d'avis</span>
+              }
+              <span class="tarif">min. {{ fcfa(l.prixMinimum) }}</span>
+            </div>
+
+            <div class="actions">
+              <button type="button" class="bouton" (click)="contacts.appeler('livreur', l.id)"
+                      [disabled]="contacts.enCours() === 'livreur:' + l.id">Appeler</button>
+              <button type="button" class="bouton whatsapp" (click)="contacts.whatsapp('livreur', l.id)"
+                      [disabled]="contacts.enCours() === 'livreur:' + l.id">WhatsApp</button>
+              <a class="bouton creux" [routerLink]="['/course']" [queryParams]="{ livreurId: l.id, vehicule: l.vehicule }">
+                Sa course
+              </a>
+            </div>
+          </div>
+        </article>
+      }
+    </section>
+  }
+</main>
