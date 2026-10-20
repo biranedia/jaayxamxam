@@ -1,69 +1,384 @@
-<main class="contenu">
-  <h1 class="titre-page enseigne">Administration</h1>
+@if (!connecte()) {
+  <!-- ========== La porte ========== -->
+  <!-- Rien n'indique de quelle plateforme il s'agit : qui tombe ici par hasard n'apprend rien -->
+  <div class="console-porte">
+    <div class="console-porte-boite">
+      <span class="console-point"></span>
+      <h1>Console</h1>
+      <p>Accès réservé. Cinq tentatives par heure.</p>
 
-  @if (!ouvert()) {
-    <p class="sous-titre">
-      Jeton défini par la variable <code>ADMIN_TOKEN</code> sur le serveur. Il n'est pas conservé :
-      il faudra le ressaisir à chaque ouverture.
-    </p>
-    @if (erreur()) { <p class="erreur">{{ erreur() }}</p> }
+      <form (submit)="connexion(champ.value, $event)">
+        <label for="mdp">Mot de passe</label>
+        <input #champ id="mdp" type="password" autocomplete="current-password"
+               spellcheck="false" autofocus />
 
-    <form class="formulaire" (submit)="entrer(champ.value, $event)">
-      <label>
-        Jeton d'administration
-        <input #champ type="password" autocomplete="off" [value]="jeton()" />
-      </label>
-      <button type="submit" class="bouton large" [disabled]="enCours()">
-        {{ enCours() ? 'Vérification…' : 'Ouvrir' }}
-      </button>
-    </form>
-  } @else if (resume(); as r) {
-    @if (erreur()) { <p class="erreur">{{ erreur() }}</p> }
-    @if (message()) { <p class="succes" style="padding:.6rem .8rem">{{ message() }}</p> }
+        @if (erreur()) { <p class="console-erreur" style="margin-top:.8rem">{{ erreur() }}</p> }
 
-    <div class="chiffres">
-      <div><span class="nombre">{{ r.file.length }}</span><small>en attente</small></div>
-      <div><span class="nombre">{{ r.artisansActifs }}</span><small>artisans visibles</small></div>
-      <div><span class="nombre">{{ r.livreursActifs }}</span><small>livreurs visibles</small></div>
+        <button type="submit" class="console-bouton vif" [disabled]="enCours()">
+          {{ enCours() ? 'Vérification…' : 'Entrer' }}
+        </button>
+      </form>
     </div>
+  </div>
 
-    <h2 class="enseigne" style="margin:1.2rem 0 .6rem">File d'attente</h2>
-
-    @if (r.file.length === 0) {
-      <p class="vide">Aucune inscription en attente. Tout est à jour.</p>
-    } @else {
-      <section class="liste">
-        @for (p of r.file; track p.type + p.id) {
-          <article class="bloc">
-            <div style="display:flex;gap:.7rem;align-items:flex-start">
-              @if (p.photo) {
-                <img [src]="urlPhoto(p.photo)" [alt]="'Photo de ' + p.nom" class="vignette" />
-              }
-              <div style="flex:1;min-width:0">
-                <h3 class="enseigne" style="margin:0;font-size:1.1rem">{{ p.nom }}</h3>
-                <p class="sous-titre" style="margin:.1rem 0">{{ p.type }} · {{ p.detail }}</p>
-                <p style="margin:.1rem 0"><a [href]="'tel:' + p.telephone">{{ p.telephone }}</a></p>
-                <p class="sous-titre" style="margin:.1rem 0">
-                  Inscrit le {{ p.creeLe | date: 'd MMMM à HH:mm' }}
-                </p>
-              </div>
-            </div>
-
-            <!-- Appeler avant de valider : c'est la seule vérification tant que le SMS n'existe pas -->
-            <div class="actions" style="margin-top:.6rem">
-              <button type="button" class="bouton" (click)="agir(p, 'valider')" [disabled]="enCours()">
-                Rendre visible
-              </button>
-              <button type="button" class="bouton cobalt" (click)="agir(p, 'verifier')" [disabled]="enCours()">
-                Badge vérifié
-              </button>
-              <button type="button" class="bouton creux" (click)="agir(p, 'refuser')" [disabled]="enCours()">
-                Écarter
-              </button>
-            </div>
-          </article>
+} @else {
+  <!-- ========== La console ========== -->
+  <div class="console">
+    <header class="console-entete">
+      <div class="console-marque">
+        <span class="console-point"></span>
+        <h1>Jaay sa xam-xam · Console</h1>
+      </div>
+      <div class="console-outils">
+        @if (etat(); as e) {
+          <span class="console-minuteur">Inactivité : {{ e.minutesInactivite }} min</span>
         }
-      </section>
-    }
-  }
-</main>
+        <button type="button" class="console-bouton" (click)="charger()" [disabled]="enCours()">
+          {{ enCours() ? '…' : 'Rafraîchir' }}
+        </button>
+        <button type="button" class="console-bouton danger" (click)="fermerTout()">
+          Fermer partout
+        </button>
+        <button type="button" class="console-bouton" (click)="deconnexion()">Quitter</button>
+      </div>
+    </header>
+
+    <nav class="console-nav" aria-label="Sections">
+      @for (o of onglets; track o.cle) {
+        <button type="button" [class.actif]="onglet() === o.cle" (click)="choisirOnglet(o.cle)">
+          <span>{{ o.nom }}</span>
+          @if (compteur(o.cle) > 0) { <span class="pastille-nav">{{ compteur(o.cle) }}</span> }
+        </button>
+      }
+    </nav>
+
+    <div class="console-corps">
+      <div class="console-dedans">
+        @if (erreur()) { <p class="console-erreur">{{ erreur() }}</p> }
+        @if (message()) { <p class="console-note">{{ message() }}</p> }
+        @if (nouveauCode(); as c) {
+          <p class="console-note">
+            Nouveau code de gestion : <strong class="mono">{{ c }}</strong> —
+            notez-le, il ne sera plus affiché en entier.
+          </p>
+        }
+
+        <!-- ---------- Tableau de bord ---------- -->
+        @if (onglet() === 'bord') {
+          @if (bord(); as b) {
+            @for (a of b.alertes; track a.texte) {
+              <p class="console-alerte" [class.urgent]="a.niveau === 'urgent'"
+                 [class.calme]="a.niveau === 'calme'">{{ a.texte }}</p>
+            }
+
+            <dl class="console-chiffres">
+              <div class="console-vignette"><dt>Artisans visibles</dt><dd>{{ b.artisansVisibles }}</dd></div>
+              <div class="console-vignette"><dt>Livreurs visibles</dt><dd>{{ b.livreursVisibles }}</dd></div>
+              <div class="console-vignette" [class.attention]="b.enAttente > 0">
+                <dt>À valider</dt><dd>{{ b.enAttente }}</dd></div>
+              <div class="console-vignette"><dt>Écartés</dt><dd>{{ b.refuses }}</dd></div>
+              <div class="console-vignette"><dt>Demandes</dt><dd>{{ b.demandesTotal }}</dd></div>
+              <div class="console-vignette" [class.danger]="b.demandesSansReponse > 0">
+                <dt>Sans réponse</dt><dd>{{ b.demandesSansReponse }}</dd></div>
+              <div class="console-vignette"><dt>Courses</dt><dd>{{ b.coursesTotal }}</dd></div>
+              <div class="console-vignette"><dt>Sessions</dt><dd>{{ b.sessionsOuvertes }}</dd></div>
+            </dl>
+
+            @if (b.enAttente > 0 || b.demandesSansReponse > 0) {
+              <div class="console-actions">
+                @if (b.enAttente > 0) {
+                  <button type="button" class="vif" (click)="choisirOnglet('attente')">
+                    Valider les inscriptions
+                  </button>
+                }
+                @if (b.demandesSansReponse > 0) {
+                  <button type="button" class="vif" (click)="choisirOnglet('travaux')">
+                    Traiter les demandes en souffrance
+                  </button>
+                }
+              </div>
+            }
+          }
+        }
+
+        <!-- ---------- File d'attente ---------- -->
+        @if (onglet() === 'attente') {
+          @if (resume(); as r) {
+            @if (r.file.length === 0) {
+              <div class="console-vide">Aucune inscription en attente.</div>
+            } @else {
+              <div class="console-cartes">
+                @for (p of r.file; track p.type + p.id) {
+                  <article class="console-carte">
+                    <div class="carte-tete">
+                      @if (p.photo) { <img [src]="urlPhoto(p.photo)" [alt]="'Photo de ' + p.nom" /> }
+                      <div>
+                        <h3>{{ p.nom }}</h3>
+                        <p class="console-doux" style="margin:.1rem 0">{{ p.type }} · {{ p.detail }}</p>
+                        <p class="console-doux" style="margin:0">
+                          Inscrit le {{ p.creeLe | date: 'd MMM à HH:mm' }}
+                        </p>
+                      </div>
+                    </div>
+                    <div class="console-actions">
+                      <button type="button" class="vif" (click)="agir(p, 'valider')"
+                              [disabled]="enCours()">Rendre visible</button>
+                      <button type="button" (click)="agir(p, 'verifier')"
+                              [disabled]="enCours()">Badge vérifié</button>
+                      <a class="appel" [href]="'tel:' + p.telephone">Appeler</a>
+                      <a class="appel" [href]="whatsapp(p.telephone)" target="_blank"
+                         rel="noopener">WhatsApp</a>
+                      <button type="button" (click)="agir(p, 'refuser')"
+                              [disabled]="enCours()">Écarter</button>
+                    </div>
+                  </article>
+                }
+              </div>
+            }
+          }
+        }
+
+        <!-- ---------- Demandes : l'écran où l'on intervient ---------- -->
+        @if (onglet() === 'travaux') {
+          @if (travaux().length === 0 && !enCours()) {
+            <div class="console-vide">Aucune demande reçue.</div>
+          } @else {
+            <div class="console-tableau-enveloppe">
+              <table class="console-tableau">
+                <thead>
+                  <tr><th>Reçue</th><th>Client</th><th>Objet</th><th>Confiée à</th>
+                      <th>État</th><th>Intervenir</th></tr>
+                </thead>
+                <tbody>
+                  @for (t of travaux(); track t.type + t.id) {
+                    <tr [class.a-traiter]="abandonne(t)">
+                      <td class="console-doux" style="white-space:nowrap">
+                        {{ t.creeLe | date: 'd MMM HH:mm' }}<br />{{ t.type }}
+                      </td>
+                      <td>
+                        {{ t.clientNom }}<br />
+                        <a class="mono" [href]="'tel:' + t.clientTelephone">{{ t.clientTelephone }}</a>
+                      </td>
+                      <td>{{ t.resume }}<br /><span class="mono console-doux">{{ t.codeSuivi }}</span></td>
+                      <td class="console-doux">{{ t.assigneA ?? '— personne' }}</td>
+                      <td>
+                        <select class="console-select" [value]="t.statut"
+                                (change)="changerEtat(t, $any($event.target).value)"
+                                [disabled]="enCours()" aria-label="Changer l'état">
+                          @for (e of etats; track e) {
+                            <option [value]="e" [selected]="e === t.statut">{{ e }}</option>
+                          }
+                        </select>
+                      </td>
+                      <td>
+                        <div class="console-actions">
+                          <button type="button" [class.vif]="abandonne(t)"
+                                  (click)="ouvrirConfier(t)" [disabled]="enCours()">
+                            {{ t.assigneA ? 'Réassigner' : 'Confier' }}
+                          </button>
+                          <a class="appel" [href]="whatsapp(t.clientTelephone)"
+                             target="_blank" rel="noopener">Écrire au client</a>
+                        </div>
+
+                        <!-- Le choix du destinataire, sans quitter la ligne -->
+                        @if (confieEnCours(); as c) {
+                          @if (c.id === t.id && c.type === t.type) {
+                            <div class="console-confier">
+                              @if (candidats().length === 0) {
+                                <p>Recherche de qui peut le prendre…</p>
+                              } @else {
+                                <p>Les disponibles d'abord. Un clic confie le travail.</p>
+                                <div class="candidats">
+                                  @for (k of candidats(); track k.id) {
+                                    <button type="button" class="candidat"
+                                            (click)="confier(t, k)" [disabled]="enCours()">
+                                      <span>
+                                        {{ k.nom }}
+                                        <small>{{ k.detail }}</small>
+                                      </span>
+                                      <span class="marques">
+                                        @if (k.disponible) { <span class="pastille p-VISIBLE">dispo</span> }
+                                        @if (k.verifie) { <span class="pastille p-ACCEPTEE">vérifié</span> }
+                                      </span>
+                                    </button>
+                                  }
+                                </div>
+                              }
+                            </div>
+                          }
+                        }
+                      </td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          }
+        }
+
+        <!-- ---------- Travailleurs ---------- -->
+        @if (onglet() === 'travailleurs') {
+          <div class="console-filtres">
+            <input class="console-champ" type="search" [value]="recherche()"
+                   (input)="chercher($any($event.target).value)"
+                   placeholder="Nom ou téléphone…" aria-label="Chercher" />
+            @for (f of [{ c: '', n: 'Tous' }, { c: 'VISIBLE', n: 'Visibles' },
+                        { c: 'EN_ATTENTE', n: 'En attente' }, { c: 'REFUSE', n: 'Écartés' }];
+                  track f.c) {
+              <button type="button" class="console-bouton" [class.vif]="filtreEtat() === f.c"
+                      (click)="filtrer(f.c)">{{ f.n }}</button>
+            }
+          </div>
+
+          @if (travailleurs().length === 0 && !enCours()) {
+            <div class="console-vide">Personne ne correspond.</div>
+          } @else {
+            <div class="console-tableau-enveloppe">
+              <table class="console-tableau">
+                <thead>
+                  <tr><th>Nom</th><th>Métier</th><th>Téléphone</th><th>État</th>
+                      <th>Code</th><th>Actions</th></tr>
+                </thead>
+                <tbody>
+                  @for (t of travailleurs(); track t.type + t.id) {
+                    <tr>
+                      <td>
+                        <strong>{{ t.nom }}</strong>
+                        @if (t.verifie) { <span class="pastille p-ACCEPTEE">vérifié</span> }
+                      </td>
+                      <td class="console-doux">{{ t.detail }}</td>
+                      <td><a class="mono" [href]="'tel:' + t.telephone">{{ t.telephone }}</a></td>
+                      <td><span class="pastille" [class]="'pastille p-' + t.etat">{{ t.etat }}</span></td>
+                      <td>
+                        <!-- Ce code ouvre l'espace de cette personne : il se révèle à la demande -->
+                        @if (codeRevele() === t.id) {
+                          <span class="mono">{{ t.codeGestion }}</span>
+                        } @else {
+                          <button type="button" class="console-bouton"
+                                  style="font-size:.74rem;padding:.15rem .45rem"
+                                  (click)="revelerCode(t.id)">Voir</button>
+                        }
+                      </td>
+                      <td>
+                        <div class="console-actions">
+                          @if (t.etat !== 'VISIBLE') {
+                            <button type="button" class="vif" (click)="agir(t, 'valider')"
+                                    [disabled]="enCours()">Activer</button>
+                          } @else {
+                            <button type="button" (click)="agir(t, 'valider', false)"
+                                    [disabled]="enCours()">Retirer</button>
+                          }
+                          <button type="button" (click)="agir(t, 'verifier', !t.verifie)"
+                                  [disabled]="enCours()">{{ t.verifie ? 'Ôter badge' : 'Badge' }}</button>
+                          <a class="appel" [href]="whatsapp(t.telephone)" target="_blank"
+                             rel="noopener">WhatsApp</a>
+                          <button type="button" (click)="regenererCode(t)"
+                                  [disabled]="enCours()">Nouveau code</button>
+                        </div>
+                      </td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          }
+        }
+
+        <!-- ---------- Métiers ---------- -->
+        @if (onglet() === 'metiers') {
+          <p class="console-doux" style="margin:0 0 .9rem">
+            Un métier fermé disparaît de la recherche et de l'inscription. Les artisans déjà
+            inscrits dedans restent visibles : fermer n'efface rien.
+          </p>
+          @if (metiers().length === 0 && !enCours()) {
+            <div class="console-vide">Aucun métier.</div>
+          } @else {
+            <div class="console-tableau-enveloppe">
+              <table class="console-tableau">
+                <thead><tr><th>Métier</th><th>Famille</th><th>Artisans</th><th>État</th><th></th></tr></thead>
+                <tbody>
+                  @for (m of metiers(); track m.id) {
+                    <tr>
+                      <td><strong>{{ m.nom }}</strong></td>
+                      <td class="console-doux">{{ m.famille }}</td>
+                      <td class="console-doux">{{ m.artisans }}</td>
+                      <td>
+                        <span class="pastille" [class]="m.actif ? 'pastille p-VISIBLE' : 'pastille p-REFUSE'">
+                          {{ m.actif ? 'ouvert' : 'fermé' }}
+                        </span>
+                      </td>
+                      <td>
+                        <div class="console-actions">
+                          <button type="button" [class.vif]="!m.actif" (click)="basculerMetier(m)"
+                                  [disabled]="enCours()">{{ m.actif ? 'Fermer' : 'Ouvrir' }}</button>
+                        </div>
+                      </td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          }
+        }
+
+        <!-- ---------- Avis ---------- -->
+        @if (onglet() === 'avis') {
+          @if (avis().length === 0 && !enCours()) {
+            <div class="console-vide">Aucun avis déposé.</div>
+          } @else {
+            <div class="console-cartes">
+              @for (a of avis(); track a.id) {
+                <article class="console-carte" [class.eteinte]="a.masque">
+                  <h3>{{ a.surQui }}</h3>
+                  <p class="console-doux" style="margin:.1rem 0 .4rem">
+                    {{ a.note }}/5 · {{ a.creeLe | date: 'd MMM yyyy' }}
+                    @if (a.masque) { · masqué }
+                  </p>
+                  @if (a.commentaire) {
+                    <p style="margin:0 0 .6rem;font-size:.92rem">« {{ a.commentaire }} »</p>
+                  }
+                  <div class="console-actions">
+                    <button type="button" [class.vif]="!a.masque" (click)="masquerAvis(a)"
+                            [disabled]="enCours()">
+                      {{ a.masque ? 'Réafficher' : 'Masquer' }}
+                    </button>
+                  </div>
+                </article>
+              }
+            </div>
+          }
+        }
+
+        <!-- ---------- Journal ---------- -->
+        @if (onglet() === 'journal') {
+          <p class="console-doux" style="margin:0 0 .9rem">
+            Toutes les actions et toutes les connexions refusées. Rien n'est modifiable ici :
+            c'est ce qui fait sa valeur.
+          </p>
+          @if (journal().length === 0 && !enCours()) {
+            <div class="console-vide">Le journal est vide.</div>
+          } @else {
+            <div class="console-tableau-enveloppe">
+              <table class="console-tableau">
+                <thead><tr><th>Quand</th><th>Action</th><th>Sur</th><th>Détail</th><th>Depuis</th></tr></thead>
+                <tbody>
+                  @for (l of journal(); track l.id) {
+                    <tr [class.a-traiter]="l.action.startsWith('CONNEXION_')">
+                      <td class="console-doux" style="white-space:nowrap">
+                        {{ l.faiteLe | date: 'd MMM HH:mm:ss' }}
+                      </td>
+                      <td><span class="mono">{{ l.action }}</span></td>
+                      <td class="console-doux mono">{{ l.cible ?? '—' }}</td>
+                      <td class="console-doux">{{ l.detail ?? '—' }}</td>
+                      <td class="console-doux mono">{{ l.adresse ?? '—' }}</td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          }
+        }
+      </div>
+    </div>
+  </div>
+}

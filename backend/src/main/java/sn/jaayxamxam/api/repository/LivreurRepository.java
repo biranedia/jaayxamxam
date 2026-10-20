@@ -20,6 +20,8 @@ public interface LivreurRepository extends JpaRepository<Livreur, Long> {
 
     long countByActifTrue();
 
+    long countByRefuseTrue();
+
     // Le filtre véhicule est facultatif ; les livreurs vérifiés passent en premier
     @Query("""
             select l from Livreur l

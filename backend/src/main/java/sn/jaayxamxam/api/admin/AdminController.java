@@ -1,5 +1,6 @@
 package sn.jaayxamxam.api.admin;
 
+import jakarta.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
@@ -37,11 +38,14 @@ public class AdminController {
     private final ArtisanRepository artisans;
     private final LivreurRepository livreurs;
     private final AvisRepository avis;
+    private final JournalAdmin registre;
 
-    public AdminController(ArtisanRepository artisans, LivreurRepository livreurs, AvisRepository avis) {
+    public AdminController(ArtisanRepository artisans, LivreurRepository livreurs,
+                           AvisRepository avis, JournalAdmin registre) {
         this.artisans = artisans;
         this.livreurs = livreurs;
         this.avis = avis;
+        this.registre = registre;
     }
 
     public record EnAttente(Long id, String type, String nom, String telephone, String detail,
@@ -72,71 +76,96 @@ public class AdminController {
 
     @PostMapping("/artisan/{id}/valider")
     @Transactional
-    public EnAttente validerArtisan(@PathVariable Long id, @RequestParam(defaultValue = "true") boolean valeur) {
+    public EnAttente validerArtisan(@PathVariable Long id,
+                                    @RequestParam(defaultValue = "true") boolean valeur,
+                                    HttpServletRequest http) {
         Artisan a = artisan(id);
         a.setActif(valeur);
         if (valeur) a.setRefuse(false);
         JOURNAL.info("Artisan {} : actif = {}", id, valeur);
+        tracer(http, valeur ? "VALIDER_ARTISAN" : "RETIRER_ARTISAN", "artisan:" + id, a.getNom());
         return resume(artisans.save(a));
     }
 
     @PostMapping("/artisan/{id}/verifier")
     @Transactional
-    public EnAttente verifierArtisan(@PathVariable Long id, @RequestParam(defaultValue = "true") boolean valeur) {
+    public EnAttente verifierArtisan(@PathVariable Long id,
+                                     @RequestParam(defaultValue = "true") boolean valeur,
+                                     HttpServletRequest http) {
         Artisan a = artisan(id);
         a.setVerifie(valeur);
         JOURNAL.info("Artisan {} : vérifié = {}", id, valeur);
+        tracer(http, valeur ? "BADGE_ARTISAN" : "RETIRER_BADGE_ARTISAN", "artisan:" + id, a.getNom());
         return resume(artisans.save(a));
     }
 
     @PostMapping("/artisan/{id}/refuser")
     @Transactional
-    public EnAttente refuserArtisan(@PathVariable Long id) {
+    public EnAttente refuserArtisan(@PathVariable Long id, HttpServletRequest http) {
         Artisan a = artisan(id);
         a.setRefuse(true);
         a.setActif(false);
         JOURNAL.info("Artisan {} : refusé", id);
+        tracer(http, "REFUSER_ARTISAN", "artisan:" + id, a.getNom());
         return resume(artisans.save(a));
     }
 
     @PostMapping("/livreur/{id}/valider")
     @Transactional
-    public EnAttente validerLivreur(@PathVariable Long id, @RequestParam(defaultValue = "true") boolean valeur) {
+    public EnAttente validerLivreur(@PathVariable Long id,
+                                    @RequestParam(defaultValue = "true") boolean valeur,
+                                    HttpServletRequest http) {
         Livreur l = livreur(id);
         l.setActif(valeur);
         if (valeur) l.setRefuse(false);
         JOURNAL.info("Livreur {} : actif = {}", id, valeur);
+        tracer(http, valeur ? "VALIDER_LIVREUR" : "RETIRER_LIVREUR", "livreur:" + id, l.getNom());
         return resume(livreurs.save(l));
     }
 
     @PostMapping("/livreur/{id}/verifier")
     @Transactional
-    public EnAttente verifierLivreur(@PathVariable Long id, @RequestParam(defaultValue = "true") boolean valeur) {
+    public EnAttente verifierLivreur(@PathVariable Long id,
+                                     @RequestParam(defaultValue = "true") boolean valeur,
+                                     HttpServletRequest http) {
         Livreur l = livreur(id);
         l.setVerifie(valeur);
         JOURNAL.info("Livreur {} : vérifié = {}", id, valeur);
+        tracer(http, valeur ? "BADGE_LIVREUR" : "RETIRER_BADGE_LIVREUR", "livreur:" + id, l.getNom());
         return resume(livreurs.save(l));
     }
 
     @PostMapping("/livreur/{id}/refuser")
     @Transactional
-    public EnAttente refuserLivreur(@PathVariable Long id) {
+    public EnAttente refuserLivreur(@PathVariable Long id, HttpServletRequest http) {
         Livreur l = livreur(id);
         l.setRefuse(true);
         l.setActif(false);
         JOURNAL.info("Livreur {} : refusé", id);
+        tracer(http, "REFUSER_LIVREUR", "livreur:" + id, l.getNom());
         return resume(livreurs.save(l));
     }
 
     /** Masquer un avis plutôt que l'effacer : on peut revenir dessus. */
     @PostMapping("/avis/{id}/masquer")
     @Transactional
-    public void masquerAvis(@PathVariable Long id, @RequestParam(defaultValue = "true") boolean valeur) {
+    public void masquerAvis(@PathVariable Long id,
+                            @RequestParam(defaultValue = "true") boolean valeur,
+                            HttpServletRequest http) {
         Avis a = avis.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Avis introuvable"));
         a.setMasque(valeur);
         avis.save(a);
         JOURNAL.info("Avis {} : masqué = {}", id, valeur);
+        tracer(http, valeur ? "MASQUER_AVIS" : "REAFFICHER_AVIS", "avis:" + id, null);
+    }
+
+    /** Toute action d'administration laisse une trace : c'est ce qui permet de la contester. */
+    private void tracer(HttpServletRequest http, String action, String cible, String detail) {
+        String transmise = http.getHeader("X-Forwarded-For");
+        String adresse = (transmise != null && !transmise.isBlank())
+                ? transmise.split(",")[0].trim() : http.getRemoteAddr();
+        registre.enregistrer(adresse, action, cible, detail);
     }
 
     private Artisan artisan(Long id) {

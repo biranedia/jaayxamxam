@@ -1,3 +1,4 @@
+@if (!ecranNu()) {
 <a class="saut-contenu" href="#principal">Aller au contenu</a>
 
 <header class="bandeau">
@@ -27,10 +28,13 @@
   </div>
 </header>
 
+}
+
 <div id="principal">
   <router-outlet />
 </div>
 
+@if (!ecranNu()) {
 <nav class="onglets" aria-label="Navigation principale">
   @for (l of liens; track l.chemin) {
     <a [routerLink]="l.chemin" routerLinkActive="actif"
@@ -39,3 +43,4 @@
     </a>
   }
 </nav>
+}

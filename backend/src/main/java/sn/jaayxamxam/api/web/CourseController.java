@@ -9,6 +9,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
+import sn.jaayxamxam.api.domain.CodeSuivi;
+import sn.jaayxamxam.api.domain.Codes;
 import sn.jaayxamxam.api.domain.Course;
 import sn.jaayxamxam.api.domain.Livreur;
 import sn.jaayxamxam.api.domain.Vehicule;
@@ -77,6 +79,7 @@ public class CourseController {
             course.setPrixEstime(Geo.prix(metres, tarif.parKm(), tarif.minimum()));
         }
 
+        course.setCodeSuivi(Codes.libre(CodeSuivi.COURSE, c -> courses.findByCodeSuivi(c).isPresent()));
         Course creee = courses.save(course);
         return new CourseResponse(creee.getId(), creee.getCodeSuivi(), creee.getStatut().name(),
                 creee.getPrixEstime(), creee.getDistanceM());

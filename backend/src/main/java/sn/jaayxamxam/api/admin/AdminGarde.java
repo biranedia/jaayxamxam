@@ -2,42 +2,60 @@ package sn.jaayxamxam.api.admin;
 
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
+import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
+import java.time.Instant;
+import java.util.Arrays;
+import java.util.Optional;
 
 /**
- * Protection de l'administration par un jeton partagé.
+ * Porte d'entrée de l'administration.
  *
- * <p>Ce n'est pas un système de comptes : c'est un mot de passe unique, pour une seule personne,
- * en attendant l'authentification. Trois règles le rendent acceptable :
+ * <p>Quatre règles, chacune pour une raison précise :
  *
  * <ul>
- *   <li><strong>Fermé par défaut.</strong> Sans la variable d'environnement {@code ADMIN_TOKEN},
- *       l'administration est totalement injoignable. Un déploiement qui oublie de la configurer
- *       n'expose rien — il n'y a pas d'« admin/admin ».
- *   <li><strong>Comparaison à temps constant.</strong> Comparer deux chaînes avec {@code equals}
- *       s'arrête au premier caractère différent : le temps de réponse révèle alors le jeton,
- *       caractère par caractère.
- *   <li><strong>Jeton jamais journalisé</strong>, et transmis dans un en-tête, pas dans l'adresse.
+ *   <li><strong>Fermée par défaut.</strong> Sans {@code ADMIN_HASH} configuré, tout est refusé.
+ *       Un déploiement qui oublie la configuration n'expose rien — il n'y a pas d'« admin/admin ».
+ *   <li><strong>Session obligatoire.</strong> Le cookie porte un jeton tiré au hasard, validé
+ *       côté serveur à chaque appel. Pas de jeton permanent, pas de secret partagé.
+ *   <li><strong>Cookie {@code HttpOnly}.</strong> Le JavaScript de la page ne peut pas le lire :
+ *       une faille d'injection ailleurs dans l'application ne permet pas de voler la session.
+ *   <li><strong>Protection CSRF.</strong> Un cookie part tout seul avec chaque requête, y compris
+ *       celles déclenchées par un site malveillant. On exige donc un en-tête que seul un appel
+ *       JavaScript de même origine peut poser — un formulaire HTML croisé en est incapable.
+ *       {@code SameSite=Strict} couvre déjà l'essentiel ; cet en-tête est la deuxième serrure.
  * </ul>
  */
 @Component
 public class AdminGarde extends OncePerRequestFilter {
 
     private static final Logger JOURNAL = LoggerFactory.getLogger(AdminGarde.class);
-    private static final String ENTETE = "X-Admin-Token";
 
-    @Value("${app.admin.jeton:}")
-    private String jeton;
+    public static final String COOKIE = "admin_session";
+    /** En-tête exigé sur les appels qui modifient quelque chose. */
+    public static final String ENTETE_CSRF = "X-Admin-Requete";
+
+    /** Seuls chemins atteignables sans session : se connecter, et savoir si l'on est connecté. */
+    private static final String CONNEXION = "/api/admin/connexion";
+    private static final String MOI = "/api/admin/moi";
+
+    private final Sessions sessions;
+
+    @Value("${app.admin.hash:}")
+    private String hash;
+
+    public AdminGarde(Sessions sessions) {
+        this.sessions = sessions;
+    }
 
     @Override
     protected boolean shouldNotFilter(HttpServletRequest requete) {
@@ -48,28 +66,50 @@ public class AdminGarde extends OncePerRequestFilter {
     protected void doFilterInternal(HttpServletRequest requete, HttpServletResponse reponse, FilterChain suite)
             throws ServletException, IOException {
 
-        if (jeton == null || jeton.isBlank()) {
-            JOURNAL.warn("Administration appelée alors qu'aucun jeton n'est configuré : refusée");
-            refuser(reponse, "Administration non configurée sur ce serveur.");
+        String chemin = requete.getRequestURI();
+
+        // Aucune empreinte configurée : l'administration n'existe pas sur ce serveur
+        if (hash == null || hash.isBlank()) {
+            JOURNAL.warn("Administration appelée alors qu'aucun mot de passe n'est configuré : refusée");
+            refuser(reponse, HttpStatus.FORBIDDEN, "Administration non configurée sur ce serveur.");
             return;
         }
-        if (!identiques(requete.getHeader(ENTETE), jeton)) {
-            JOURNAL.warn("Jeton d'administration invalide depuis {}", requete.getRemoteAddr());
-            refuser(reponse, "Jeton d'administration invalide.");
+
+        // La connexion et la vérification d'état sont forcément accessibles sans session
+        if (CONNEXION.equals(chemin) || MOI.equals(chemin)) {
+            suite.doFilter(requete, reponse);
             return;
         }
+
+        Optional<String> session = sessions.valider(jetonDuCookie(requete), Instant.now());
+        if (session.isEmpty()) {
+            refuser(reponse, HttpStatus.UNAUTHORIZED, "Session expirée. Reconnectez-vous.");
+            return;
+        }
+
+        // Un GET ne change rien : on n'exige l'en-tête que sur ce qui modifie
+        if (!"GET".equals(requete.getMethod()) && requete.getHeader(ENTETE_CSRF) == null) {
+            JOURNAL.warn("Appel d'administration sans en-tête {} depuis {} : refusé",
+                    ENTETE_CSRF, requete.getRemoteAddr());
+            refuser(reponse, HttpStatus.FORBIDDEN, "Requête refusée.");
+            return;
+        }
+
         suite.doFilter(requete, reponse);
     }
 
-    private static boolean identiques(String fourni, String attendu) {
-        if (fourni == null) return false;
-        return MessageDigest.isEqual(
-                fourni.getBytes(StandardCharsets.UTF_8),
-                attendu.getBytes(StandardCharsets.UTF_8));
+    static String jetonDuCookie(HttpServletRequest requete) {
+        Cookie[] cookies = requete.getCookies();
+        if (cookies == null) return null;
+        return Arrays.stream(cookies)
+                .filter(c -> COOKIE.equals(c.getName()))
+                .map(Cookie::getValue)
+                .findFirst()
+                .orElse(null);
     }
 
-    private static void refuser(HttpServletResponse reponse, String message) throws IOException {
-        reponse.setStatus(HttpServletResponse.SC_FORBIDDEN);
+    private static void refuser(HttpServletResponse reponse, HttpStatus statut, String message) throws IOException {
+        reponse.setStatus(statut.value());
         reponse.setContentType("application/json;charset=UTF-8");
         reponse.getWriter().write("{\"message\":\"" + message + "\"}");
     }

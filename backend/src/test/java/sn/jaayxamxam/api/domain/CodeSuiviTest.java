@@ -29,7 +29,15 @@ class CodeSuiviTest {
         for (int i = 0; i < 100_000; i++) {
             vus.add(CodeSuivi.generer(CodeSuivi.COURSE));
         }
-        assertThat(vus).hasSize(100_000);
+
+        // Exiger 100 000 codes tous distincts était une affirmation fausse, et ce test échouait
+        // un passage sur 171. Le paradoxe des anniversaires : avec 31^8 ≈ 8,5 × 10^11 codes
+        // possibles, la probabilité qu'au moins deux parmi 100 000 coïncident est de 0,58 %.
+        //
+        // Ce qu'on vérifie vraiment, c'est que le générateur étale bien ses tirages. Plus de dix
+        // doublons signalerait un alphabet amputé ou une source d'aléa cassée ; un ou deux sont
+        // attendus. La collision réelle, elle, est traitée par Codes.libre() avant insertion.
+        assertThat(vus).hasSizeGreaterThan(99_990);
     }
 
     @Test

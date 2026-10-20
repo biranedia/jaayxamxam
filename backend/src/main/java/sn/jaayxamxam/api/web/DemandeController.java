@@ -10,6 +10,8 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
 import sn.jaayxamxam.api.domain.Artisan;
+import sn.jaayxamxam.api.domain.CodeSuivi;
+import sn.jaayxamxam.api.domain.Codes;
 import sn.jaayxamxam.api.domain.Demande;
 import sn.jaayxamxam.api.repository.ArtisanRepository;
 import sn.jaayxamxam.api.repository.DemandeRepository;
@@ -43,10 +45,22 @@ public class DemandeController {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Numéro de téléphone invalide");
         }
 
+        // Écrit ou parlé, il faut l'un des deux : sans cela l'artisan reçoit une demande vide
+        String texte = req.description() == null ? "" : req.description().trim();
+        boolean parle = req.vocal() != null && !req.vocal().isBlank();
+        if (texte.isEmpty() && !parle) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "Décrivez le travail, en écrivant ou en enregistrant un message.");
+        }
+
         Demande d = new Demande();
+        // Un code déjà pris ferait échouer l'insertion sur la contrainte d'unicité :
+        // une lecture indexée coûte moins cher qu'une erreur 500 inexplicable
+        d.setCodeSuivi(Codes.libre(CodeSuivi.DEMANDE, c -> demandes.findByCodeSuivi(c).isPresent()));
         d.setClientNom(req.clientNom().trim());
         d.setClientTelephone(telephone);
-        d.setDescription(req.description().trim());
+        d.setDescription(texte.isEmpty() ? null : texte);
+        d.setVocal(parle ? req.vocal() : null);
         d.setUrgente(req.urgente());
         d.setLatitude(req.latitude());
         d.setLongitude(req.longitude());

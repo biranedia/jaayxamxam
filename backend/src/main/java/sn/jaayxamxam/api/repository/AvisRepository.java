@@ -12,6 +12,9 @@ public interface AvisRepository extends JpaRepository<Avis, Long> {
 
     boolean existsByDemandeId(Long demandeId);
 
+    // Les derniers avis déposés, masqués compris : c'est l'écran de modération
+    List<Avis> findTop100ByOrderByCreeLeDesc();
+
     boolean existsByCourseId(Long courseId);
 
     // Avis visibles d'un artisan, les plus récents d'abord

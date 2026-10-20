@@ -26,13 +26,24 @@ app:
   cors:
     allowed-origins: ${CORS_ORIGINS:http://localhost:4200}
   admin:
-    # Sans ce jeton, l'administration est injoignable. À définir en production,
-    # par exemple : openssl rand -hex 24
-    jeton: ${ADMIN_TOKEN:}
+    # Empreinte PBKDF2 du mot de passe, produite une seule fois par :
+    #   .\mvnw.cmd -q compile
+    #   java -cp target/classes sn.jaayxamxam.api.admin.MotDePasse "ma phrase de passe"
+    # Le mot de passe en clair n'est stocké nulle part, ici pas plus qu'ailleurs.
+    # Vide = l'administration est totalement injoignable. C'est voulu : un déploiement
+    # qui oublie cette variable n'expose rien.
+    hash: ${ADMIN_HASH:}
+    # Le cookie de session n'est transmis qu'en HTTPS. À laisser à true en production ;
+    # en développement local, http://localhost n'est pas HTTPS, d'où le réglage.
+    cookie-securise: ${ADMIN_COOKIE_SECURISE:true}
   photos:
     # En production, ce dossier doit être un volume persistant, sinon les photos
     # disparaissent au prochain déploiement.
     dossier: ${PHOTOS_DIR:./donnees/photos}
+  vocaux:
+    # Même remarque : un volume persistant, sinon les messages vocaux des clients
+    # disparaissent au prochain déploiement.
+    dossier: ${VOCAUX_DIR:./donnees/vocaux}
   # Numéro WhatsApp de la plateforme, au format international sans « + » ni espaces
   # (exemple : 221771234567). Les travailleurs y envoient leur code de gestion pour
   # faire confirmer leur numéro : c'est eux qui écrivent, donc Meta ne facture rien.
@@ -45,6 +56,7 @@ app:
     suivis-par-heure: ${LIMITE_SUIVIS:30}         # essais de codes de suivi
     contacts-par-heure: ${LIMITE_CONTACTS:60}     # numéros de téléphone consultés
     admin-par-heure: ${LIMITE_ADMIN:200}          # appels à l'administration
+    connexions-admin-par-heure: ${LIMITE_CONNEXIONS_ADMIN:5}  # essais de mot de passe admin
     espace-par-heure: ${LIMITE_ESPACE:120}        # espace travailleur : positions et connexions
 
 management:

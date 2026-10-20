@@ -2,3 +2,10 @@
 spring:
   flyway:
     locations: classpath:db/migration,classpath:db/dev
+
+app:
+  admin:
+    # En local on tourne sur http://localhost, qui n'est pas HTTPS : un cookie marqué
+    # « Secure » ne serait jamais envoyé, et l'administration serait inutilisable.
+    # Ce réglage ne s'applique QUE au profil dev.
+    cookie-securise: false

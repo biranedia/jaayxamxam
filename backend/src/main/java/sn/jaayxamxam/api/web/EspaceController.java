@@ -265,7 +265,7 @@ public class EspaceController {
                 : d.getZone().getQuartier() + ", " + d.getZone().getVille();
         return new EspaceResponse.TravailDto(
                 d.getId(), d.getCodeSuivi(), d.getStatut().name(),
-                d.getClientNom(), d.getClientTelephone(), d.getDescription(),
+                d.getClientNom(), d.getClientTelephone(), d.getDescription(), d.getVocal(),
                 d.isUrgente(), lieu, null, null, d.getCreeLe());
     }
 
@@ -274,7 +274,7 @@ public class EspaceController {
                 : c.getDepart().getQuartier() + " → " + c.getDestination().getQuartier();
         return new EspaceResponse.TravailDto(
                 c.getId(), c.getCodeSuivi(), c.getStatut().name(),
-                c.getClientNom(), c.getClientTelephone(), c.getDescription(),
+                c.getClientNom(), c.getClientTelephone(), c.getDescription(), null,
                 false, lieu, c.getPrixEstime(), c.getDistanceM(), c.getCreeLe());
     }
 }

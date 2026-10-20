@@ -41,6 +41,7 @@ public record EspaceResponse(
             String clientNom,
             String clientTelephone,
             String description,
+            String vocal,                   // nom du fichier audio, ou null
             boolean urgente,
             String lieu,
             Integer prixEstime,         // course seulement

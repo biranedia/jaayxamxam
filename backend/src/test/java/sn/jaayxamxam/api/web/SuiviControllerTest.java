@@ -4,6 +4,8 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.context.annotation.Import;
+import sn.jaayxamxam.api.admin.Sessions;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import sn.jaayxamxam.api.domain.Artisan;
@@ -23,6 +25,11 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @WebMvcTest(SuiviController.class)
+// AdminGarde est un filtre : @WebMvcTest le charge dans TOUTES les tranches web, même celles
+// qui n'ont rien à voir avec l'administration. Il lui faut donc son magasin de sessions, qui est
+// un simple @Component et n'est pas chargé par la tranche. Sans cet import, le contexte ne
+// démarre pas et tous les tests web tombent d'un coup.
+@Import(Sessions.class)
 class SuiviControllerTest {
 
     private static final double LAT_EXACTE = 14.681783;

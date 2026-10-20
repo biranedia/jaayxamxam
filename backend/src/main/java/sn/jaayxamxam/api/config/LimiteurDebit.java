@@ -83,7 +83,8 @@ public class LimiteurDebit extends OncePerRequestFilter {
                 || chemin.startsWith("/api/courses")
                 || chemin.startsWith("/api/avis")
                 || chemin.startsWith("/api/inscriptions")
-                || chemin.startsWith("/api/photos"))) {
+                || chemin.startsWith("/api/photos")
+                || chemin.startsWith("/api/vocaux"))) {
             return creationsParHeure;
         }
         if ("GET".equals(requete.getMethod()) && chemin.startsWith("/api/suivi")) {

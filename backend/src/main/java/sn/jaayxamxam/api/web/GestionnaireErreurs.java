@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.multipart.MaxUploadSizeExceededException;
 import org.springframework.web.server.ResponseStatusException;
 import sn.jaayxamxam.api.photo.PhotoRefusee;
+import sn.jaayxamxam.api.vocal.VocalRefuse;
 
 import java.util.Map;
 
@@ -33,6 +34,11 @@ public class GestionnaireErreurs {
 
     @ExceptionHandler(PhotoRefusee.class)
     public ResponseEntity<Map<String, String>> photo(PhotoRefusee e) {
+        return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));
+    }
+
+    @ExceptionHandler(VocalRefuse.class)
+    public ResponseEntity<Map<String, String>> vocal(VocalRefuse e) {
         return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));
     }
 

@@ -20,6 +20,8 @@ public interface ArtisanRepository extends JpaRepository<Artisan, Long> {
 
     long countByActifTrue();
 
+    long countByRefuseTrue();
+
     // Recherche : les filtres métier et zone sont optionnels ; les artisans vérifiés passent en premier
     @Query("""
             select a from Artisan a join fetch a.metier join fetch a.zone

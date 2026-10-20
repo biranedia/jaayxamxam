@@ -21,8 +21,14 @@ public class Demande {
     @Column(name = "client_telephone", nullable = false)
     private String clientTelephone;
 
-    @Column(nullable = false, columnDefinition = "TEXT")
+    // Facultative depuis les vocaux : un client qui enregistre n'a rien à écrire.
+    // La base vérifie qu'au moins l'un des deux est présent (contrainte demande_a_une_description).
+    @Column(columnDefinition = "TEXT")
     private String description;
+
+    /** Nom du fichier audio déposé par le client, ou null s'il a seulement écrit. */
+    @Column(length = 64)
+    private String vocal;
 
     @Column(nullable = false)
     private boolean urgente;

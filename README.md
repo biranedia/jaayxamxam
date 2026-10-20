@@ -148,16 +148,54 @@ déploiement.
 
 ## Administration
 
+Le back-office vit sur `/admin`. Aucun lien n'y mène depuis le site : on y va par l'adresse.
+
+### Mettre en place son mot de passe
+
 ```bash
-export ADMIN_TOKEN=$(openssl rand -hex 24)
+cd backend
+mvn -q compile                       # ou .\mvnw.cmd -q compile sous Windows
+java -cp target/classes sn.jaayxamxam.api.admin.MotDePasse "une phrase de quatre ou cinq mots"
 ```
 
-Sans cette variable, `/api/admin` répond 403 à tout le monde : **pas d'« admin/admin »**, un serveur
-mal configuré n'expose rien. Le jeton voyage dans l'en-tête `X-Admin-Token`, jamais dans l'adresse,
-et n'est pas conservé par le navigateur : il faut le ressaisir à chaque ouverture de `/admin`.
+Le programme imprime une ligne `pbkdf2$600000$...` : c'est elle qui va dans la variable
+d'environnement `ADMIN_HASH`. **Le mot de passe en clair n'est stocké nulle part**, ni dans le
+code, ni dans la configuration, ni en base. Perdu, il se régénère.
 
-Rien n'y est destructeur. Écarter une inscription la garde en base (`refuse = true`), masquer un
-avis le garde aussi. Une erreur à 23 h ne doit pas effacer le gagne-pain de quelqu'un.
+Une phrase longue vaut mieux qu'un mot court et compliqué : `chez mon oncle a medina 2026` est
+plus solide et plus facile à retenir que `Xk9!pZ`.
+
+### Comment l'accès est protégé
+
+| Mécanisme | Ce qu'il empêche |
+|---|---|
+| PBKDF2-HMAC-SHA256, 600 000 itérations, sel aléatoire | Retrouver le mot de passe si la configuration fuite. C'est le paramètre recommandé par l'OWASP ; chaque vérification coûte ~140 ms |
+| Session serveur de 8 h, 45 min d'inactivité | Un navigateur laissé ouvert qui reste une porte d'entrée |
+| Cookie `HttpOnly` | Le vol de session par une faille d'affichage : le JavaScript de la page ne peut pas lire le cookie |
+| Cookie `Secure` + `SameSite=Strict` | L'interception en clair, et l'envoi du cookie depuis un autre site |
+| En-tête `X-Admin-Requete` sur tout ce qui modifie | Le CSRF : un formulaire croisé ne peut pas poser cet en-tête |
+| 5 essais de mot de passe par heure et par adresse | L'essai systématique de mots de passe |
+| Fermé tant qu'`ADMIN_HASH` est vide | Un déploiement qui oublie la configuration et laisse tout ouvert |
+| Journal de chaque action et de chaque refus | De ne pas savoir ce qui s'est passé |
+
+**Point d'architecture.** `SameSite=Strict` suppose que le site et l'API sont sur le même
+domaine. Si le frontend est hébergé séparément, il faut passer en `SameSite=None`, ce qui est
+plus fragile et moins protecteur. Mieux vaut un seul domaine.
+
+### Ce que le back-office permet
+
+- **Tableau de bord** : les alertes d'abord — inscriptions à valider, clients sans réponse depuis
+  plus de 48 h, et le cas où plus aucun artisan n'est visible.
+- **À valider** : la file d'attente des inscriptions, avec photo et téléphone.
+- **Travailleurs** : tous les inscrits, filtrables et cherchables. On y retrouve le code de
+  gestion de quelqu'un qui l'a perdu, et on peut lui en donner un nouveau — l'ancien cesse alors
+  de fonctionner immédiatement.
+- **Demandes** : demandes et courses, celles que personne n'a prises ressortent en couleur.
+- **Avis** : masquer ou réafficher. Rien n'est jamais effacé.
+- **Journal** : les 200 dernières actions, connexions refusées comprises. Non modifiable.
+
+Le code de gestion n'est pas affiché par défaut dans la liste : il ouvre l'espace d'un
+travailleur, donc il se révèle à la demande, une ligne à la fois.
 
 ## Les codes remis aux utilisateurs
 
@@ -188,6 +226,12 @@ chose. La lettre rend la collision impossible entre types.
 ## Sécurité
 
 ### Traité
+
+- **Le back-office est protégé par un mot de passe haché, jamais par un jeton en clair.**
+  PBKDF2-HMAC-SHA256 à 600 000 itérations avec sel aléatoire, session serveur à double échéance,
+  cookie `HttpOnly` + `Secure` + `SameSite=Strict`, en-tête anti-CSRF sur tout ce qui modifie,
+  cinq essais par heure, et journal horodaté de chaque action comme de chaque refus. Fermé tant
+  qu'aucune empreinte n'est configurée. Voir la section Administration.
 
 - **Les numéros de téléphone ont quitté les listes.** `GET /api/artisans` ne les renvoie plus : ils
   se demandent un par un via `/api/contacts/{type}/{id}`, compté et journalisé. Aspirer l'annuaire
@@ -231,6 +275,14 @@ chose. La lettre rend la collision impossible entre types.
   ouverte toute la journée et la data se paie au mégaoctet. Le prix de ce choix : quelqu'un qui
   rentre chez lui à midi reste visible jusqu'au soir. D'où le mot « disponible » et non « en
   ligne », l'heure de déclaration affichée, et le bouton « je m'arrête ».
+- **Le back-office tient sur un seul mot de passe.** Pas de second facteur. Pour une personne
+  seule c'est défendable — la fenêtre de session est courte, les essais sont limités à cinq par
+  heure et chaque tentative refusée est tracée. Le second facteur (une application
+  d'authentification, type TOTP) est le prochain renfort logique, avant d'ouvrir l'accès à
+  quelqu'un d'autre.
+- **Les sessions vivent en mémoire du serveur.** Un redémarrage déconnecte, et avec plusieurs
+  instances chacune aurait les siennes. Même limite que pour la limitation de débit : il faudra
+  Redis au-delà d'un serveur.
 - **Le code de suivi est le seul secret du client.** Qui l'a voit le travail et peut déposer l'avis.
   Il passe dans l'adresse (`/api/suivi/{code}`), donc il se retrouve dans les journaux du serveur et
   l'historique du navigateur. À déplacer dans un en-tête le jour où ça compte — c'est déjà le cas
@@ -278,7 +330,9 @@ envoie-moi les erreurs.
 |---|---|
 | `DB_URL`, `DB_USER`, `DB_PASSWORD` | Base PostgreSQL |
 | `CORS_ORIGINS` | Origine du frontend, à régler sur le vrai domaine |
-| `ADMIN_TOKEN` | Ouvre `/api/admin`. Sans lui, l'administration est injoignable |
+| `ADMIN_HASH` | Empreinte PBKDF2 du mot de passe d'administration. Sans elle, `/api/admin` est totalement fermé |
+| `ADMIN_COOKIE_SECURISE` | `true` par défaut : le cookie de session n'est envoyé qu'en HTTPS. Le profil `dev` le met à `false` pour le développement local |
+| `LIMITE_CONNEXIONS_ADMIN` | Essais de mot de passe par heure et par adresse (5 par défaut) |
 | `PHOTOS_DIR` | Dossier des photos ; **volume persistant** en production |
 | `LIMITE_CREATIONS`, `LIMITE_SUIVIS`, `LIMITE_CONTACTS`, `LIMITE_ADMIN` | Limites par adresse IP et par heure | Les valeurs par défaut de `application.yml` sont
 réservées au développement.

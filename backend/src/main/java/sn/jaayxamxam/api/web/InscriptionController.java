@@ -11,6 +11,8 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
 import sn.jaayxamxam.api.domain.Artisan;
 import sn.jaayxamxam.api.domain.CodeSuivi;
+import sn.jaayxamxam.api.domain.Codes;
+import sn.jaayxamxam.api.domain.CodeSuivi;
 import sn.jaayxamxam.api.domain.Livreur;
 import sn.jaayxamxam.api.domain.Metier;
 import sn.jaayxamxam.api.domain.Vehicule;
@@ -70,6 +72,7 @@ public class InscriptionController {
         a.setVerifie(false);    // le badge se gagne après contrôle de la pièce d'identité
         a.setCodeGestion(CodeSuivi.generer(CodeSuivi.ARTISAN));
 
+        a.setCodeGestion(Codes.libre(CodeSuivi.ARTISAN, c -> artisans.findByCodeGestion(c).isPresent()));
         Artisan cree = artisans.save(a);
         return new InscriptionResponse(cree.getId(), cree.getCodeGestion(), EN_ATTENTE);
     }
@@ -98,6 +101,7 @@ public class InscriptionController {
         l.setVerifie(false);
         l.setCodeGestion(CodeSuivi.generer(CodeSuivi.LIVREUR));
 
+        l.setCodeGestion(Codes.libre(CodeSuivi.LIVREUR, c -> livreurs.findByCodeGestion(c).isPresent()));
         Livreur cree = livreurs.save(l);
         return new InscriptionResponse(cree.getId(), cree.getCodeGestion(), EN_ATTENTE);
     }
