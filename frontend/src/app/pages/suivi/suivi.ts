@@ -2,7 +2,7 @@ import { Component, computed, effect, inject, input, signal } from '@angular/cor
 import { DatePipe } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { ApiService, Suivi as SuiviDto } from '../../api.service';
-import { Geo, distanceMetres, estEnLigne, formatDistance, minutesTrajet } from '../../geo';
+import { Geo, distanceMetres, estDisponible, formatDistance, minutesTrajet } from '../../geo';
 import { Glyphe, teinte } from '../../glyphe';
 import { fcfa, initiales, lienWhatsapp, messageErreur, urlPhoto } from '../../utils';
 
@@ -36,7 +36,7 @@ export class Suivi {
   protected readonly urlPhoto = urlPhoto;
   protected readonly formatDistance = formatDistance;
   protected readonly minutesTrajet = minutesTrajet;
-  protected readonly estEnLigne = estEnLigne;
+  protected readonly estDisponible = estDisponible;
   protected readonly initiales = initiales;
   protected readonly fcfa = fcfa;
   protected readonly teinte = teinte;

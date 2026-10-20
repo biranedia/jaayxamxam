@@ -187,6 +187,10 @@ export function teinte(cle?: string): string {
         @case ('sceau') {
           <path d="M20 6 9 17l-5-5" />
         }
+        @case ('photo') {
+          <path d="M3 8h3.2l1.4-2.2h7.8L16.8 8H21v12H3z" />
+          <circle cx="12" cy="13.6" r="3.6" />
+        }
         @case ('maison') {
           <path d="M3 10.5 12 3l9 7.5" />
           <path d="M5.5 9.5V20h13V9.5" />

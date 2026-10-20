@@ -1,0 +1,223 @@
+@if (profil(); as p) {
+  <!-- ========== L'atelier ouvert ========== -->
+  <header class="banniere-atelier" [style.--teinte]="teinte(p.metierFamille ?? 'services')">
+    <div class="atelier-dedans">
+      <div class="atelier-identite">
+        <span class="atelier-vignette">
+          @if (p.photo) {
+            <img [src]="urlPhoto(p.photo)" [alt]="'Photo de ' + p.nom" />
+          } @else {
+            <app-glyphe [nom]="p.metierIcone ?? p.vehicule ?? 'defaut'" [taille]="26" />
+          }
+        </span>
+        <div>
+          <p class="atelier-oeil">Mon atelier</p>
+          <h1 class="enseigne">{{ p.nom }}</h1>
+          <p class="atelier-metier">
+            {{ p.metier ?? ('Livreur · ' + p.vehicule) }}
+            @if (p.quartier) { · {{ p.quartier }} }
+          </p>
+        </div>
+      </div>
+      <button type="button" class="lien-fantome" (click)="quitter()">Fermer la session</button>
+    </div>
+  </header>
+
+  <main class="contenu large">
+    @if (erreur()) { <p class="erreur">{{ erreur() }}</p> }
+    @if (message()) { <p class="note-claire">{{ message() }}</p> }
+
+    <!-- ---------- L'état du profil, dit franchement ---------- -->
+    @switch (p.etat) {
+      @case ('EN_ATTENTE') {
+        <section class="bandeau-etat attente">
+          <h2 class="enseigne">Votre profil attend sa validation</h2>
+          <p>
+            Nous vérifions chaque inscription avant de la rendre visible : c'est ce qui permet aux
+            clients de faire confiance à cette plateforme. Vous ne pouvez pas encore vous déclarer
+            disponible.
+          </p>
+          @if (lienVerification(); as lien) {
+            <a class="bouton whatsapp" [href]="lien" target="_blank" rel="noopener">
+              Accélérer par WhatsApp
+            </a>
+          }
+        </section>
+      }
+      @case ('REFUSE') {
+        <section class="bandeau-etat refuse">
+          <h2 class="enseigne">Votre profil a été refusé</h2>
+          <p>Contactez-nous pour en connaître la raison et corriger ce qui doit l'être.</p>
+          @if (lienVerification(); as lien) {
+            <a class="bouton whatsapp" [href]="lien" target="_blank" rel="noopener">Nous écrire</a>
+          }
+        </section>
+      }
+      @default {
+        <!-- ---------- L'interrupteur : le cœur de cette page ---------- -->
+        <section class="interrupteur" [class.allume]="disponible()">
+          <div class="interrupteur-texte">
+            <p class="atelier-oeil">{{ disponible() ? 'Vous êtes visible' : 'Vous n\'apparaissez pas' }}</p>
+            <h2 class="enseigne">
+              {{ disponible() ? 'Je travaille aujourd\'hui' : 'Je ne travaille pas' }}
+            </h2>
+            @if (disponible()) {
+              <p class="interrupteur-detail">
+                Déclaré à {{ heure(p.derniereActivite) }}. Les clients proches de vous
+                voient votre fiche en premier.
+              </p>
+            } @else {
+              <p class="interrupteur-detail">
+                Un seul appui le matin suffit. Votre position est envoyée une fois, pas en continu.
+              </p>
+            }
+          </div>
+
+          @if (disponible()) {
+            <button type="button" class="bascule allumee" (click)="seRetirer()"
+                    [disabled]="chargement()" aria-pressed="true">
+              <span class="bascule-pastille"></span>
+              <span class="bascule-mot">Je m'arrête</span>
+            </button>
+          } @else {
+            <button type="button" class="bascule" (click)="seDeclarer()"
+                    [disabled]="chargement()" aria-pressed="false">
+              <span class="bascule-pastille"></span>
+              <span class="bascule-mot">{{ chargement() ? 'Un instant…' : 'Je commence' }}</span>
+            </button>
+          }
+        </section>
+      }
+    }
+
+    <!-- ---------- Le travail reçu ---------- -->
+    <section class="section">
+      <h2 class="titre-section enseigne">Le travail reçu</h2>
+
+      @if (p.travaux.length === 0) {
+        <div class="vide">
+          <app-glyphe nom="liste" [taille]="34" />
+          <p>
+            Aucune demande pour l'instant.
+            @if (p.etat === 'VALIDE' && !disponible()) {
+              Déclarez-vous disponible : les clients cherchent d'abord ceux qui travaillent.
+            }
+          </p>
+        </div>
+      } @else {
+        @if (aTraiter().length > 0) {
+          <h3 class="sous-titre-groupe">À répondre ({{ aTraiter().length }})</h3>
+          <div class="liste grille">
+            @for (t of aTraiter(); track t.id) {
+              <article class="fiche-travail" [class.urgent]="t.urgente">
+                @if (t.urgente) { <span class="marque-urgent">Urgent</span> }
+                <h4 class="enseigne">{{ t.clientNom }}</h4>
+                @if (t.lieu) { <p class="travail-lieu">{{ t.lieu }}</p> }
+                @if (t.description) { <p class="travail-texte">{{ t.description }}</p> }
+                @if (t.prixEstime) { <p class="tarif">{{ fcfa(t.prixEstime) }}</p> }
+                <p class="travail-code">Code {{ t.codeSuivi }}</p>
+                <div class="actions">
+                  <button type="button" class="bouton" (click)="repondre(t, 'ACCEPTEE')"
+                          [disabled]="travailEnCours() === t.id">J'accepte</button>
+                  <button type="button" class="bouton creux" (click)="repondre(t, 'REFUSEE')"
+                          [disabled]="travailEnCours() === t.id">Je refuse</button>
+                </div>
+              </article>
+            }
+          </div>
+        }
+
+        @if (enCours().length > 0) {
+          <h3 class="sous-titre-groupe">En cours ({{ enCours().length }})</h3>
+          <div class="liste grille">
+            @for (t of enCours(); track t.id) {
+              <article class="fiche-travail en-cours">
+                <h4 class="enseigne">{{ t.clientNom }}</h4>
+                @if (t.lieu) { <p class="travail-lieu">{{ t.lieu }}</p> }
+                @if (t.description) { <p class="travail-texte">{{ t.description }}</p> }
+                <p class="travail-code">Code {{ t.codeSuivi }} · {{ t.statut }}</p>
+                <div class="actions">
+                  <a class="bouton whatsapp" [href]="'tel:' + t.clientTelephone">Appeler</a>
+                  @if (t.statut === 'ACCEPTEE') {
+                    <button type="button" class="bouton creux" (click)="repondre(t, 'EN_ROUTE')"
+                            [disabled]="travailEnCours() === t.id">Je pars</button>
+                  }
+                  <button type="button" class="bouton creux" (click)="repondre(t, 'TERMINEE')"
+                          [disabled]="travailEnCours() === t.id">C'est fini</button>
+                </div>
+              </article>
+            }
+          </div>
+        }
+
+        @if (termines().length > 0) {
+          <h3 class="sous-titre-groupe">Terminé ({{ termines().length }})</h3>
+          <ul class="liste-sobre">
+            @for (t of termines(); track t.id) {
+              <li><strong>{{ t.clientNom }}</strong> · {{ t.statut }} · {{ t.codeSuivi }}</li>
+            }
+          </ul>
+        }
+      }
+    </section>
+
+    <!-- ---------- Ma fiche ---------- -->
+    <section class="section">
+      <h2 class="titre-section enseigne">Ma fiche</h2>
+      <div class="bloc">
+        <p class="travail-lieu">
+          {{ p.telephone }}
+          @if (p.verifie) { · <span class="sceau"><app-glyphe nom="sceau" [taille]="11" />Vérifié</span> }
+        </p>
+        <label class="depot-photo">
+          <app-glyphe nom="photo" [taille]="18" />
+          {{ p.photo ? 'Changer ma photo' : 'Ajouter ma photo' }}
+          <input type="file" accept="image/jpeg,image/png,image/webp" (change)="envoyerPhoto($event)" />
+        </label>
+        <p class="travail-texte">
+          Une photo de vous au travail inspire plus confiance qu'un visage posé. Elle est
+          réduite et nettoyée de ses données de localisation avant d'être enregistrée.
+        </p>
+      </div>
+    </section>
+  </main>
+
+} @else {
+  <!-- ========== Entrée par le code ========== -->
+  <main class="contenu entree-espace">
+    <p class="atelier-oeil">Espace des travailleurs</p>
+    <h1 class="titre-page enseigne">Ouvrez votre atelier</h1>
+    <p class="sous-titre">
+      Entrez le code reçu à votre inscription. Pas de mot de passe, pas de compte à créer.
+    </p>
+
+    <form class="formulaire-code" (submit)="ouvrir($event)">
+      <label>
+        Votre code
+        <input class="saisie-code" type="text" inputmode="latin" autocapitalize="characters"
+               autocomplete="off" spellcheck="false" maxlength="20" placeholder="A1B2C3D4E"
+               [value]="code()" (input)="code.set($any($event.target).value)"
+               aria-describedby="aide-code" />
+      </label>
+      <p id="aide-code" class="aide">Neuf caractères. Les minuscules et les tirets sont acceptés.</p>
+
+      @if (erreur()) { <p class="erreur">{{ erreur() }}</p> }
+
+      <button type="submit" class="bouton large" [disabled]="chargement() || !code().trim()">
+        {{ chargement() ? 'Ouverture…' : 'Ouvrir mon atelier' }}
+      </button>
+    </form>
+
+    <div class="bloc">
+      <h2 class="enseigne" style="font-size:1.05rem;margin:0 0 .4rem">Code perdu ?</h2>
+      <p class="travail-texte">
+        Il figure dans le message que vous vous êtes envoyé après l'inscription.
+        @if (config()?.whatsappVerification) {
+          Sinon, écrivez-nous sur WhatsApp avec le numéro de téléphone de votre inscription.
+        } @else {
+          Sinon, contactez-nous avec le numéro de téléphone de votre inscription.
+        }
+      </p>
+    </div>
+  </main>
+}

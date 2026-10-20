@@ -4,7 +4,7 @@ import { NonNullableFormBuilder, ReactiveFormsModule, Validators } from '@angula
 import { RouterLink } from '@angular/router';
 import { ApiService, ArtisanDetail } from '../../api.service';
 import { Contacts } from '../../contacts';
-import { Geo, distanceMetres, estEnLigne, formatDistance } from '../../geo';
+import { Geo, distanceMetres, estDisponible, formatDistance } from '../../geo';
 import { Glyphe, teinte } from '../../glyphe';
 import { etoiles, fcfa, initiales, messageErreur, urlPhoto } from '../../utils';
 
@@ -22,7 +22,7 @@ export class FicheArtisan {
 
   // Outils de présentation utilisés par le gabarit
   protected readonly formatDistance = formatDistance;
-  protected readonly estEnLigne = estEnLigne;
+  protected readonly estDisponible = estDisponible;
   protected readonly initiales = initiales;
   protected readonly etoiles = etoiles;
   protected readonly fcfa = fcfa;

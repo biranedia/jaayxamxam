@@ -32,6 +32,22 @@ export function messageErreur(statut: number): string {
   }
 }
 
+/**
+ * Message à montrer pour une erreur HTTP, en préférant celui du serveur.
+ *
+ * <p>L'API répond {"message": "..."} avec des phrases précises — « Votre profil attend encore sa
+ * validation », « Code inconnu » — bien plus utiles que les formules génériques par code. On ne
+ * retombe sur messageErreur() que si le serveur n'a rien dit d'exploitable.
+ *
+ * <p>Le texte du serveur est inséré par Angular, qui échappe tout : aucun risque d'injection.
+ */
+export function messageHttp(erreur: unknown): string {
+  const e = erreur as { status?: number; error?: { message?: string } } | null;
+  const duServeur = e?.error?.message;
+  if (typeof duServeur === 'string' && duServeur.trim()) return duServeur.trim();
+  return messageErreur(typeof e?.status === 'number' ? e.status : -1);
+}
+
 // Initiales affichées dans le bloc de peinture quand il n'y a pas encore de photo
 export function initiales(nom: string): string {
   return nom.trim().split(/\s+/).slice(0, 2).map(m => m[0] ?? '').join('').toUpperCase();

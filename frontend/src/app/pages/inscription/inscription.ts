@@ -45,6 +45,29 @@ export class Inscription {
   protected readonly photoEnvoyee = signal(false);
   protected readonly photoErreur = signal<string | null>(null);
   protected readonly photoEnCours = signal(false);
+  protected readonly codeCopie = signal(false);
+
+  /**
+   * Lien pour s'envoyer son propre code sur WhatsApp.
+   *
+   * <p>Sans numéro de destinataire, WhatsApp demande à qui envoyer et propose la conversation
+   * « Vous ». C'est le travailleur qui écrit, depuis son téléphone : aucune API, aucun coût,
+   * et le code survit à la perte de l'onglet.
+   */
+  protected lienCode(code: string): string {
+    const texte = `Mon code Jaay sa xam-xam : ${code}\nJ'ouvre mon atelier sur jaayxamxam.sn/espace`;
+    return `https://wa.me/?text=${encodeURIComponent(texte)}`;
+  }
+
+  protected copierCode(code: string): void {
+    // navigator.clipboard n'existe pas partout, et échoue hors HTTPS : on ne casse rien
+    navigator.clipboard?.writeText(code)
+      .then(() => {
+        this.codeCopie.set(true);
+        setTimeout(() => this.codeCopie.set(false), 2500);
+      })
+      .catch(() => this.codeCopie.set(false));
+  }
   private photoFichier: File | null = null;
 
   protected readonly formArtisan = this.fb.group({

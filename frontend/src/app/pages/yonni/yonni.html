@@ -78,8 +78,8 @@
             <p class="metier-lieu">Jusqu'à {{ l.chargeMaxKg }} kg · {{ fcfa(l.prixParKm) }}/km</p>
 
             <div class="faits">
-              <span class="presence" [class.en-ligne]="estEnLigne(l.derniereActivite)">
-                {{ estEnLigne(l.derniereActivite) ? 'En ligne' : 'Hors ligne' }}
+              <span class="presence" [class.en-ligne]="estDisponible(l.derniereActivite)">
+                {{ estDisponible(l.derniereActivite) ? 'Disponible' : 'Indisponible' }}
               </span>
               @if (l.distanceM !== undefined) {
                 <span class="distance">

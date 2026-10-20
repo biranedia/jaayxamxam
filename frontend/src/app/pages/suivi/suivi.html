@@ -49,8 +49,8 @@
         <div class="corps">
           <h2 class="nom enseigne">{{ p.nom }}</h2>
           <div class="faits">
-            <span class="presence" [class.en-ligne]="estEnLigne(p.derniereActivite)">
-              {{ estEnLigne(p.derniereActivite) ? 'En ligne' : 'Hors ligne' }}
+            <span class="presence" [class.en-ligne]="estDisponible(p.derniereActivite)">
+              {{ estDisponible(p.derniereActivite) ? 'Disponible' : 'Indisponible' }}
             </span>
             @if (distanceIntervenant(); as d) {
               <span class="distance">{{ formatDistance(d) }} <small>· {{ minutesTrajet(d) }} min</small></span>

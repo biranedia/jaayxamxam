@@ -123,8 +123,8 @@
             <p class="metier-lieu">{{ a.metier }} · {{ a.quartier }}, {{ a.ville }}</p>
 
             <div class="faits">
-              <span class="presence" [class.en-ligne]="estEnLigne(a.derniereActivite)">
-                {{ estEnLigne(a.derniereActivite) ? 'En ligne' : 'Hors ligne' }}
+              <span class="presence" [class.en-ligne]="estDisponible(a.derniereActivite)">
+                {{ estDisponible(a.derniereActivite) ? 'Disponible' : 'Indisponible' }}
               </span>
               @if (a.distanceM !== undefined) {
                 <span class="distance">{{ formatDistance(a.distanceM) }} <small>d'ici</small></span>

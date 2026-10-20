@@ -41,7 +41,7 @@
             <span class="distance">{{ formatDistance(p.distanceM) }}</span>
           }
           <span class="presence" [class.en-ligne]="p.enLigne" style="font-size:.78rem">
-            {{ p.enLigne ? 'En ligne' : 'Hors ligne' }}
+            {{ p.enLigne ? 'Disponible' : 'Indisponible' }}
           </span>
         </span>
       </a>

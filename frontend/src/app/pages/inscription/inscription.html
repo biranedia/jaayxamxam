@@ -6,11 +6,26 @@
         Gardez ce code : c'est lui qui vous permettra de modifier votre profil.
       </p>
       <p class="code">{{ r.codeGestion }}</p>
+
+      <!-- Le code perdu est le premier motif d'appel au support. Un message qu'on s'envoie à
+           soi-même le met à l'abri, et ne coûte rien : c'est le travailleur qui écrit. -->
+      <div class="actions" style="margin:.2rem 0 .9rem">
+        <a class="bouton whatsapp" [href]="lienCode(r.codeGestion)" target="_blank" rel="noopener">
+          M'envoyer ce code sur WhatsApp
+        </a>
+        <button type="button" class="bouton creux" (click)="copierCode(r.codeGestion)">
+          {{ codeCopie() ? 'Copié' : 'Copier' }}
+        </button>
+      </div>
+
       <p>
-        Votre profil n'est pas encore visible. Nous vous appelons pour vérifier votre numéro et votre
-        métier, puis il apparaît dans la recherche. Comptez un à deux jours.
+        Votre profil n'est pas encore visible. Nous vérifions votre numéro et votre métier, puis il
+        apparaît dans la recherche. Comptez un à deux jours.
       </p>
-      <a class="bouton" routerLink="/">Voir la plateforme</a>
+      <div class="actions">
+        <a class="bouton" routerLink="/espace">Ouvrir mon atelier</a>
+        <a class="bouton creux" routerLink="/">Voir la plateforme</a>
+      </div>
     </section>
 
     <!-- Deuxième temps : la photo. Facultative, mais c'est elle qui fait appeler. -->
@@ -70,7 +85,8 @@
     </button>
 
     <p class="sous-titre" style="margin-top:1.2rem">
-      Vous avez déjà un profil ? Appelez-nous avec le code reçu à l'inscription.
+      Vous avez déjà un profil ?
+      <a routerLink="/espace">Ouvrez votre atelier</a> avec le code reçu à l'inscription.
     </p>
   } @else if (choix() === 'artisan') {
     <p style="margin:.2rem 0 .8rem">

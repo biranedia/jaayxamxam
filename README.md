@@ -91,6 +91,11 @@ Le frontend appelle `/api/...`, redirigé vers le port 8080 par `frontend/proxy.
 | POST | `/api/inscriptions/artisan` | Inscription d'un artisan ; profil inactif, renvoie un `codeGestion` |
 | POST | `/api/inscriptions/livreur` | Inscription d'un livreur ; prix facultatifs, tarif du véhicule par défaut |
 | GET | `/api/contacts/{type}/{id}` | Le numéro de téléphone d'un profil, un à la fois |
+| POST | `/api/espace` | Ouvre l'espace d'un travailleur ; le code va dans le corps |
+| POST | `/api/espace/position` | « Je travaille aujourd'hui » : position et horodatage |
+| POST | `/api/espace/hors-ligne` | Retire de la recherche ; la position est conservée |
+| POST | `/api/espace/travaux/{id}/statut` | Accepter, refuser, partir ou terminer un travail |
+| GET | `/api/config` | Réglages publics de l'installation (numéro WhatsApp) |
 | POST | `/api/photos/{type}` | Photo de profil (multipart : `code` + `fichier`) |
 | GET | `/api/photos/{nom}` | Sert la photo ; nom tiré au hasard, cache d'un an |
 | GET | `/api/admin/attente` | File des inscriptions à valider (jeton requis) |
@@ -212,8 +217,20 @@ chose. La lettre rend la collision impossible entre types.
 
 ### Non traité, à décider
 
-- **Aucune authentification des travailleurs.** C'est le verrou qui manque, et tout en découle :
-  l'inscription doit être validée à la main, et le code de gestion remplace un vrai compte.
+- **Le code de gestion est le seul secret du travailleur.** Il ouvre son espace, lui permet de se
+  déclarer disponible, d'accepter ou de refuser du travail, et de changer sa photo. Pas de mot de
+  passe, pas de SMS : ce choix est assumé tant qu'aucun argent ne transite, parce qu'un code se
+  régénère et qu'une vérification par SMS coûte de l'argent à chaque envoi. Le code voyage dans le
+  corps des requêtes, jamais dans l'adresse, et `/api/espace` est limité à 120 appels par heure et
+  par adresse IP — essayer 31^8 combinaisons reste sans espoir. **Le jour où la plateforme
+  encaissera des paiements, ce dispositif ne suffira plus : il faudra vérifier le téléphone.**
+- **L'inscription doit être validée à la main.** Un profil non validé ne peut pas se déclarer
+  disponible : le serveur renvoie 403, et l'interface ne montre même pas l'interrupteur.
+- **La disponibilité est déclarative, pas mesurée.** Un travailleur appuie une fois le matin et
+  reste affiché dix heures. Il n'y a pas de suivi GPS continu : un artisan ne garde pas une page
+  ouverte toute la journée et la data se paie au mégaoctet. Le prix de ce choix : quelqu'un qui
+  rentre chez lui à midi reste visible jusqu'au soir. D'où le mot « disponible » et non « en
+  ligne », l'heure de déclaration affichée, et le bouton « je m'arrête ».
 - **Le code de suivi est le seul secret du client.** Qui l'a voit le travail et peut déposer l'avis.
   Il passe dans l'adresse (`/api/suivi/{code}`), donc il se retrouve dans les journaux du serveur et
   l'historique du navigateur. À déplacer dans un en-tête le jour où ça compte — c'est déjà le cas

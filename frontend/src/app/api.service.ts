@@ -137,6 +137,50 @@ export interface InscriptionLivreur {
 // Le profil attend d'être validé ; le code de gestion est à conserver
 export interface InscriptionReponse { id: number; codeGestion: string; statut: string; }
 
+// Un travail reçu : une demande pour un artisan, une course pour un livreur
+export interface Travail {
+  id: number;
+  codeSuivi: string;
+  statut: string;
+  clientNom: string;
+  clientTelephone: string;
+  description?: string;
+  urgente: boolean;
+  lieu?: string;
+  prixEstime?: number;    // course seulement
+  distanceM?: number;     // course seulement
+  creeLe: string;
+}
+
+// Ce que le travailleur voit de lui-même : son numéro et sa position exacts, sans floutage
+export interface Espace {
+  type: 'artisan' | 'livreur';
+  id: number;
+  nom: string;
+  telephone: string;
+  photo?: string;
+  verifie: boolean;
+  actif: boolean;
+  refuse: boolean;
+  etat: 'EN_ATTENTE' | 'VALIDE' | 'REFUSE';
+  metier?: string;
+  metierIcone?: string;
+  metierFamille?: string;
+  quartier?: string;
+  ville?: string;
+  vehicule?: string;
+  chargeMaxKg?: number;
+  prixParKm?: number;
+  prixMinimum?: number;
+  latitude?: number;
+  longitude?: number;
+  derniereActivite?: string;
+  travaux: Travail[];
+}
+
+// Réglages dépendant de l'installation, lus au démarrage
+export interface Config { whatsappVerification: string; }
+
 @Injectable({ providedIn: 'root' })
 export class ApiService {
   private readonly http = inject(HttpClient);
@@ -199,6 +243,30 @@ export class ApiService {
 
   suivi(code: string): Observable<Suivi> {
     return this.http.get<Suivi>(`/api/suivi/${encodeURIComponent(code)}`);
+  }
+
+  // ---------- Espace travailleur ----------
+  // Le code part dans le corps et jamais dans l'adresse : une URL se retrouve dans
+  // l'historique du navigateur et dans l'en-tête Referer envoyé aux sites tiers.
+
+  ouvrirEspace(code: string): Observable<Espace> {
+    return this.http.post<Espace>('/api/espace', { code });
+  }
+
+  envoyerPosition(code: string, lat: number, lon: number): Observable<Espace> {
+    return this.http.post<Espace>('/api/espace/position', { code, latitude: lat, longitude: lon });
+  }
+
+  passerHorsLigne(code: string): Observable<Espace> {
+    return this.http.post<Espace>('/api/espace/hors-ligne', { code });
+  }
+
+  changerStatut(code: string, travailId: number, statut: string): Observable<Espace> {
+    return this.http.post<Espace>(`/api/espace/travaux/${travailId}/statut`, { code, statut });
+  }
+
+  config(): Observable<Config> {
+    return this.http.get<Config>('/api/config');
   }
 
   private filtres(metierId?: number, zoneId?: number, ou?: Point | null): HttpParams {

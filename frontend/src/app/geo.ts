@@ -20,8 +20,20 @@ export function formatDistance(metres: number): string {
   return `${(metres / 1000).toFixed(1).replace('.', ',')} km`;
 }
 
-// Un travailleur est « en ligne » si son téléphone a envoyé sa position récemment
-export function estEnLigne(derniereActivite?: string, minutes = 10): boolean {
+/**
+ * Un travailleur est disponible s'il s'est déclaré tel dans la journée.
+ *
+ * <p>La fenêtre est volontairement longue — dix heures, une journée de travail. L'ancienne
+ * version tenait dix minutes, ce qui supposait un téléphone qui envoie sa position en continu.
+ * Un artisan ne garde pas une page ouverte toute la journée, et la data se paie au mégaoctet :
+ * il appuie une fois le matin, et c'est tout. Avec dix minutes, il aurait disparu aussitôt.
+ *
+ * <p>Le prix de ce choix : quelqu'un qui rentre chez lui à midi reste affiché jusqu'au soir.
+ * C'est pour cela que l'espace affiche l'heure exacte de la déclaration et propose un bouton
+ * « je ne travaille plus », et que le libellé dit « disponible » et non « en ligne » — promettre
+ * une présence en temps réel qu'on ne peut pas tenir serait pire que de ne rien promettre.
+ */
+export function estDisponible(derniereActivite?: string, minutes = 600): boolean {
   if (!derniereActivite) return false;
   const ecart = Date.now() - new Date(derniereActivite).getTime();
   return ecart >= 0 && ecart < minutes * 60_000;

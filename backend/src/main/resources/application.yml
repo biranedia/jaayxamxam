@@ -3,7 +3,7 @@ spring:
     name: jaayxamxam-api
   datasource:
     # Valeurs par défaut pour le développement local (surchargées par les variables d'environnement)
-    url: ${DB_URL:jdbc:postgresql://localhost:5433/jaayxamxam}
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/jaayxamxam}
     username: ${DB_USER:jaayxamxam}
     password: ${DB_PASSWORD:jaayxamxam_dev}
   jpa:
@@ -33,12 +33,19 @@ app:
     # En production, ce dossier doit être un volume persistant, sinon les photos
     # disparaissent au prochain déploiement.
     dossier: ${PHOTOS_DIR:./donnees/photos}
+  # Numéro WhatsApp de la plateforme, au format international sans « + » ni espaces
+  # (exemple : 221771234567). Les travailleurs y envoient leur code de gestion pour
+  # faire confirmer leur numéro : c'est eux qui écrivent, donc Meta ne facture rien.
+  # Vide = le bouton de confirmation est masqué dans l'interface.
+  whatsapp:
+    verification: ${WHATSAPP_VERIFICATION:}
   # Limites par adresse IP et par heure (voir LimiteurDebit)
   limites:
     creations-par-heure: ${LIMITE_CREATIONS:10}   # demandes, courses et avis
     suivis-par-heure: ${LIMITE_SUIVIS:30}         # essais de codes de suivi
     contacts-par-heure: ${LIMITE_CONTACTS:60}     # numéros de téléphone consultés
     admin-par-heure: ${LIMITE_ADMIN:200}          # appels à l'administration
+    espace-par-heure: ${LIMITE_ESPACE:120}        # espace travailleur : positions et connexions
 
 management:
   endpoints:

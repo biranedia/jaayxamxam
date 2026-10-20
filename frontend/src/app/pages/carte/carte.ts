@@ -2,7 +2,7 @@ import { AfterViewInit, Component, ElementRef, OnDestroy, computed, effect, inje
 import { RouterLink } from '@angular/router';
 import * as L from 'leaflet';
 import { ApiService, Artisan, Livreur } from '../../api.service';
-import { Geo, distanceMetres, estEnLigne, formatDistance } from '../../geo';
+import { Geo, distanceMetres, estDisponible, formatDistance } from '../../geo';
 import { Glyphe, teinte } from '../../glyphe';
 import { echapper, initiales, urlPhoto } from '../../utils';
 
@@ -64,7 +64,7 @@ export class Carte implements AfterViewInit, OnDestroy {
           lat: a.latitude!,
           lon: a.longitude!,
           distanceM: a.distanceM ?? avecDistance(a.latitude!, a.longitude!),
-          enLigne: estEnLigne(a.derniereActivite)
+          enLigne: estDisponible(a.derniereActivite)
         })),
       ...this.livreurs()
         .filter(l => l.latitude != null && l.longitude != null)
@@ -79,7 +79,7 @@ export class Carte implements AfterViewInit, OnDestroy {
           lat: l.latitude!,
           lon: l.longitude!,
           distanceM: l.distanceM ?? avecDistance(l.latitude!, l.longitude!),
-          enLigne: estEnLigne(l.derniereActivite)
+          enLigne: estDisponible(l.derniereActivite)
         }))
     ];
     return liste.sort((a, b) => (a.distanceM ?? Infinity) - (b.distanceM ?? Infinity));

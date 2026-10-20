@@ -1048,3 +1048,250 @@ textarea { min-height: 96px; resize: vertical; }
 
 /* Le médaillon de la feuille garde sa taille propre, plus petite que sur les cartes */
 .feuille .portrait { width: 100%; height: 100%; border: 0; border-radius: inherit; }
+
+/* ================================================================
+   COUCHE 3 — L'espace du travailleur
+   Ce n'est pas un tableau de bord. C'est l'établi de quelqu'un :
+   une enseigne en haut, un interrupteur, et le travail à faire.
+   ================================================================ */
+
+/* ---------- Lien permanent vers l'atelier, dans l'en-tête ---------- */
+.lien-atelier {
+  color: #cfc8bc;
+  text-decoration: none;
+  font-weight: 600;
+  font-size: .85rem;
+  white-space: nowrap;
+  border-bottom: 2px solid transparent;
+  padding-bottom: 1px;
+}
+.lien-atelier:hover { color: var(--papier); }
+.lien-atelier.actif { color: var(--safran); border-bottom-color: var(--safran); }
+/* Sur un téléphone, l'en-tête n'a pas la place : l'inscription suffit à cet endroit */
+@media (max-width: 560px) { .lien-atelier { display: none; } }
+
+/* ---------- Entrée par le code ---------- */
+.contenu.entree-espace { max-width: 520px; }
+.formulaire-code { display: grid; gap: .4rem; margin: 1.2rem 0 1.8rem; }
+
+/* Le code se lit caractère par caractère quand on le recopie d'un message */
+.saisie-code {
+  font-family: Anton, ui-monospace, monospace;
+  font-size: 1.7rem;
+  letter-spacing: .22em;
+  text-align: center;
+  text-transform: uppercase;
+  padding: .7rem .5rem !important;
+  border-width: 3px !important;
+}
+.aide { color: var(--gris); font-size: .85rem; margin: 0 0 .5rem; }
+
+/* ---------- Bannière de l'atelier ---------- */
+.banniere-atelier {
+  background: var(--nuit);
+  color: var(--papier);
+  /* Un filet de la couleur du métier : l'atelier est identifié avant d'être lu */
+  border-bottom: 6px solid var(--teinte, var(--safran));
+  padding: 1.1rem 1rem;
+}
+.atelier-dedans {
+  max-width: 1180px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+.atelier-identite { display: flex; align-items: center; gap: .85rem; min-width: 0; }
+.atelier-vignette {
+  flex: none;
+  width: 54px; height: 54px;
+  border-radius: 50%;
+  background: var(--teinte, var(--f-services));
+  border: 3px solid var(--papier);
+  display: flex; align-items: center; justify-content: center;
+  overflow: hidden;
+  color: #fff;
+}
+.atelier-vignette img { width: 100%; height: 100%; object-fit: cover; }
+.atelier-oeil {
+  margin: 0;
+  text-transform: uppercase;
+  letter-spacing: .14em;
+  font-size: .68rem;
+  font-weight: 700;
+  color: var(--safran);
+}
+.banniere-atelier h1 { font-size: 1.5rem; margin: .1rem 0 0; }
+.atelier-metier { margin: .1rem 0 0; color: #cfc8bc; font-size: .88rem; }
+
+/* ---------- L'interrupteur ---------- */
+.interrupteur {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.2rem;
+  flex-wrap: wrap;
+  border: 3px solid var(--nuit);
+  border-radius: 4px;
+  padding: 1.2rem;
+  margin: 1.4rem 0;
+  background: var(--papier);
+  /* L'ombre dure donne l'épaisseur d'un objet posé, pas d'une carte qui flotte */
+  box-shadow: 6px 6px 0 var(--sable-fonce);
+  transition: box-shadow .16s ease, background .16s ease;
+}
+.interrupteur.allume {
+  background: #f2fbf5;
+  box-shadow: 6px 6px 0 var(--atelier);
+}
+.interrupteur-texte { min-width: 0; flex: 1 1 260px; }
+.interrupteur h2 { font-size: 1.45rem; margin: .1rem 0 .3rem; }
+.interrupteur .atelier-oeil { color: var(--gris); }
+.interrupteur.allume .atelier-oeil { color: var(--atelier); }
+.interrupteur-detail { margin: 0; color: var(--gris); font-size: .9rem; max-width: 46ch; }
+
+/* La bascule : un vrai interrupteur d'atelier, pas une case à cocher */
+.bascule {
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: .5rem;
+  width: 132px;
+  padding: .9rem .6rem;
+  border: 3px solid var(--nuit);
+  border-radius: 4px;
+  background: var(--sable);
+  font: inherit;
+  font-weight: 700;
+  color: var(--nuit);
+  cursor: pointer;
+  transition: transform .1s ease, background .16s ease;
+}
+.bascule:hover { background: var(--sable-fonce); }
+.bascule:active { transform: translateY(2px); }
+.bascule:disabled { opacity: .6; cursor: progress; }
+.bascule-pastille {
+  width: 46px; height: 46px;
+  border-radius: 50%;
+  border: 3px solid var(--nuit);
+  background: var(--papier);
+  position: relative;
+}
+/* Le point central grossit et s'allume quand la personne est disponible */
+.bascule-pastille::after {
+  content: '';
+  position: absolute;
+  inset: 50% auto auto 50%;
+  transform: translate(-50%, -50%);
+  width: 12px; height: 12px;
+  border-radius: 50%;
+  background: var(--sable-fonce);
+  transition: width .18s ease, height .18s ease, background .18s ease, box-shadow .18s ease;
+}
+.bascule.allumee { background: var(--atelier); border-color: var(--atelier); color: #fff; }
+.bascule.allumee:hover { filter: brightness(1.07); background: var(--atelier); }
+.bascule.allumee .bascule-pastille { border-color: #fff; background: rgba(255, 255, 255, .15); }
+.bascule.allumee .bascule-pastille::after {
+  width: 24px; height: 24px;
+  background: #fff;
+  box-shadow: 0 0 0 6px rgba(255, 255, 255, .28);
+}
+.bascule-mot { font-size: .88rem; text-align: center; line-height: 1.2; }
+
+/* ---------- Bandeaux d'état du profil ---------- */
+.bandeau-etat {
+  border: 3px solid var(--nuit);
+  border-radius: 4px;
+  padding: 1.1rem;
+  margin: 1.4rem 0;
+}
+.bandeau-etat h2 { font-size: 1.25rem; margin: 0 0 .4rem; }
+.bandeau-etat p { margin: 0 0 .8rem; max-width: 60ch; }
+.bandeau-etat.attente { border-left: 12px solid var(--safran); background: #fffaf0; }
+.bandeau-etat.refuse { border-left: 12px solid var(--brique); background: #fdf1ec; }
+
+.note-claire {
+  background: #f2fbf5;
+  border-left: 5px solid var(--atelier);
+  padding: .7rem .8rem;
+  border-radius: 4px;
+  margin: 0 0 1rem;
+}
+
+/* ---------- Fiches de travail ---------- */
+.sous-titre-groupe {
+  font-size: .78rem;
+  text-transform: uppercase;
+  letter-spacing: .12em;
+  color: var(--gris);
+  margin: 1.4rem 0 .6rem;
+  padding-bottom: .3rem;
+  border-bottom: 2px solid var(--sable);
+}
+.fiche-travail {
+  position: relative;
+  border: 2px solid var(--nuit);
+  border-radius: 4px;
+  padding: .9rem;
+  background: var(--papier);
+}
+.fiche-travail.urgent { border-left: 10px solid var(--brique); }
+.fiche-travail.en-cours { border-left: 10px solid var(--cobalt); }
+.fiche-travail h4 { font-size: 1.15rem; margin: 0 0 .15rem; }
+.marque-urgent {
+  position: absolute;
+  top: -11px; right: .7rem;
+  background: var(--brique);
+  color: #fff;
+  font-size: .68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  padding: .15rem .45rem;
+  border-radius: 3px;
+}
+.travail-lieu { margin: 0 0 .35rem; color: var(--gris); font-size: .88rem; }
+.travail-texte { margin: .25rem 0 .5rem; font-size: .93rem; }
+.travail-code {
+  margin: .3rem 0 .7rem;
+  font-size: .78rem;
+  letter-spacing: .06em;
+  color: var(--gris);
+  text-transform: uppercase;
+}
+
+.liste-sobre {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  gap: .4rem;
+  color: var(--gris);
+  font-size: .9rem;
+}
+.liste-sobre li { border-left: 3px solid var(--sable-fonce); padding-left: .6rem; }
+
+/* ---------- Dépôt de photo ---------- */
+.depot-photo {
+  display: inline-flex;
+  flex-direction: row;
+  align-items: center;
+  gap: .45rem;
+  border: 2px dashed var(--sable-fonce);
+  border-radius: 4px;
+  padding: .6rem .9rem;
+  cursor: pointer;
+  font-weight: 700;
+  margin: .3rem 0 .6rem;
+}
+.depot-photo:hover { border-color: var(--cobalt); color: var(--cobalt); }
+.depot-photo input { display: none; }
+
+@media (min-width: 900px) {
+  .banniere-atelier { padding: 1.4rem 1.5rem; }
+  .banniere-atelier h1 { font-size: 1.9rem; }
+  .interrupteur { padding: 1.6rem; }
+}

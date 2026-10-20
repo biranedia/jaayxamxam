@@ -92,7 +92,7 @@ describe('Recherche', () => {
 
   it('montre la présence et la distance envoyées par le serveur', async () => {
     const el = (await ouvrir([artisan])).nativeElement as HTMLElement;
-    expect(el.querySelector('.presence.en-ligne')?.textContent).toContain('En ligne');
+    expect(el.querySelector('.presence.en-ligne')?.textContent).toContain('Disponible');
     expect(el.querySelector('.distance')?.textContent).toContain('280 m');
   });
 

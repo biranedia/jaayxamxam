@@ -1,7 +1,7 @@
 import { Component, computed, inject, signal } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
 import { ApiService, Artisan, Livreur, Metier } from '../../api.service';
-import { Geo, estEnLigne } from '../../geo';
+import { Geo, estDisponible } from '../../geo';
 import { FAMILLES, Glyphe, teinte } from '../../glyphe';
 
 /**
@@ -44,8 +44,8 @@ export class Accueil {
   protected readonly recherche = signal('');
 
   protected readonly nombreEnLigne = computed(
-    () => this.artisans().filter(a => estEnLigne(a.derniereActivite)).length
-      + this.livreurs().filter(l => estEnLigne(l.derniereActivite)).length
+    () => this.artisans().filter(a => estDisponible(a.derniereActivite)).length
+      + this.livreurs().filter(l => estDisponible(l.derniereActivite)).length
   );
 
   // Combien de métiers par famille : affiché sur chaque tuile pour montrer l'étendue

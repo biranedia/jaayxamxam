@@ -2,7 +2,7 @@ import { Component, computed, effect, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { ApiService, Livreur } from '../../api.service';
 import { Contacts } from '../../contacts';
-import { Geo, estEnLigne, formatDistance, minutesTrajet } from '../../geo';
+import { Geo, estDisponible, formatDistance, minutesTrajet } from '../../geo';
 import { Glyphe, teinte } from '../../glyphe';
 import { etoiles, fcfa, initiales, urlPhoto } from '../../utils';
 
@@ -33,7 +33,7 @@ export class Yonni {
   protected readonly urlPhoto = urlPhoto;
   protected readonly formatDistance = formatDistance;
   protected readonly minutesTrajet = minutesTrajet;
-  protected readonly estEnLigne = estEnLigne;
+  protected readonly estDisponible = estDisponible;
   protected readonly initiales = initiales;
   protected readonly etoiles = etoiles;
   protected readonly fcfa = fcfa;
@@ -51,7 +51,7 @@ export class Yonni {
   });
 
   protected readonly nombreEnLigne = computed(
-    () => this.resultats().filter(l => estEnLigne(l.derniereActivite)).length
+    () => this.resultats().filter(l => estDisponible(l.derniereActivite)).length
   );
 
   constructor() {

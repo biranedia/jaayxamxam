@@ -1,4 +1,4 @@
-import { distanceMetres, estEnLigne, formatDistance, minutesTrajet } from './geo';
+import { distanceMetres, estDisponible, formatDistance, minutesTrajet } from './geo';
 
 describe('Outils de géolocalisation', () => {
   const medina = { lat: 14.68, lon: -17.45 };
@@ -21,11 +21,20 @@ describe('Outils de géolocalisation', () => {
     expect(formatDistance(12_800)).toBe('12,8 km');
   });
 
-  it('considère en ligne une position envoyée il y a moins de dix minutes', () => {
+  it('considère disponible qui s\'est déclaré dans la journée', () => {
     const ilYa = (min: number) => new Date(Date.now() - min * 60_000).toISOString();
-    expect(estEnLigne(ilYa(2))).toBe(true);
-    expect(estEnLigne(ilYa(45))).toBe(false);
-    expect(estEnLigne(undefined)).toBe(false);
+    expect(estDisponible(ilYa(2))).toBe(true);
+    // Le point de la bascule : un artisan déclaré le matin reste visible l'après-midi.
+    // Avec l'ancienne fenêtre de dix minutes, il disparaissait aussitôt.
+    expect(estDisponible(ilYa(45))).toBe(true);
+    expect(estDisponible(ilYa(7 * 60))).toBe(true);
+    expect(estDisponible(ilYa(11 * 60))).toBe(false);
+    expect(estDisponible(undefined)).toBe(false);
+  });
+
+  it('ne considère pas disponible une date dans le futur', () => {
+    const dans = (min: number) => new Date(Date.now() + min * 60_000).toISOString();
+    expect(estDisponible(dans(30))).toBe(false);
   });
 
   it('estime une durée de trajet d\'au moins trois minutes', () => {

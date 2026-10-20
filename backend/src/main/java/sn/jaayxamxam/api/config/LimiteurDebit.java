@@ -40,6 +40,12 @@ public class LimiteurDebit extends OncePerRequestFilter {
     @Value("${app.limites.admin-par-heure:200}")
     private int adminParHeure;
 
+    // Un travailleur envoie sa position régulièrement pendant sa journée : la limite doit être
+    // large. Elle sert surtout contre l'essai de codes de gestion au hasard, que les neuf
+    // caractères rendent déjà sans espoir.
+    @Value("${app.limites.espace-par-heure:120}")
+    private int espaceParHeure;
+
     @Override
     protected void doFilterInternal(HttpServletRequest requete, HttpServletResponse reponse, FilterChain suite)
             throws ServletException, IOException {
@@ -63,6 +69,7 @@ public class LimiteurDebit extends OncePerRequestFilter {
     // Un compteur par catégorie : épuiser ses essais de code ne doit pas empêcher d'appeler
     private static String categorie(String chemin) {
         if (chemin.startsWith("/api/suivi")) return "suivi";
+        if (chemin.startsWith("/api/espace")) return "espace";
         if (chemin.startsWith("/api/contacts")) return "contact";
         if (chemin.startsWith("/api/admin")) return "admin";
         return "creation";
@@ -87,6 +94,11 @@ public class LimiteurDebit extends OncePerRequestFilter {
         }
         if (chemin.startsWith("/api/admin")) {
             return adminParHeure;
+        }
+        // Sans cette règle, l'espace travailleur serait le seul point d'entrée sans limite,
+        // donc le seul endroit où essayer des codes au hasard ne coûte rien.
+        if (chemin.startsWith("/api/espace")) {
+            return espaceParHeure;
         }
         return null;
     }

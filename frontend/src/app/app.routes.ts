@@ -20,6 +20,8 @@ export const routes: Routes = [
   { path: 'carte', loadComponent: () => import('./pages/carte/carte').then(m => m.Carte) },
   { path: 'suivi', component: Suivi },
   { path: 'inscription', component: Inscription },
+  // L'espace du travailleur : chargé à la demande, peu de visiteurs y passent
+  { path: 'espace', loadComponent: () => import('./pages/espace/espace').then(m => m.Espace) },
   // Pas d'onglet vers l'administration : on y va par l'adresse, et le jeton fait le reste
   { path: 'admin', loadComponent: () => import('./pages/admin/admin').then(m => m.Admin) },
   { path: '**', redirectTo: '' }

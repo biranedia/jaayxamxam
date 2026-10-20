@@ -17,6 +17,9 @@
       <app-glyphe [nom]="geo.etat() === 'ok' ? 'position' : 'cible'" [taille]="14" />
       <span class="texte-lieu">{{ libelleLieu() }}</span>
     </button>
+    <!-- Un travailleur déjà inscrit revient ici tous les matins : le lien doit être permanent -->
+    <a routerLink="/espace" routerLinkActive="actif" class="lien-atelier">Mon atelier</a>
+
     <!-- Les travailleurs doivent trouver l'inscription sans la chercher : elle est sur tous les écrans -->
     <a routerLink="/inscription" class="bouton-inscription">
       <app-glyphe nom="sceau" [taille]="14" /><span>M'inscrire</span>

@@ -2,7 +2,7 @@ import { Component, computed, effect, inject, input, linkedSignal, signal } from
 import { RouterLink } from '@angular/router';
 import { ApiService, Artisan, Metier, Zone } from '../../api.service';
 import { Contacts } from '../../contacts';
-import { Geo, estEnLigne, formatDistance } from '../../geo';
+import { Geo, estDisponible, formatDistance } from '../../geo';
 import { FAMILLES, Glyphe, teinte } from '../../glyphe';
 import { etoiles, fcfa, initiales, sansAccent, urlPhoto } from '../../utils';
 
@@ -38,7 +38,7 @@ export class Recherche {
   // Outils de présentation utilisés par le gabarit
   protected readonly urlPhoto = urlPhoto;
   protected readonly formatDistance = formatDistance;
-  protected readonly estEnLigne = estEnLigne;
+  protected readonly estDisponible = estDisponible;
   protected readonly initiales = initiales;
   protected readonly etoiles = etoiles;
   protected readonly fcfa = fcfa;
@@ -83,7 +83,7 @@ export class Recherche {
   });
 
   protected readonly nombreEnLigne = computed(
-    () => this.resultats().filter(a => estEnLigne(a.derniereActivite)).length
+    () => this.resultats().filter(a => estDisponible(a.derniereActivite)).length
   );
 
   constructor() {
