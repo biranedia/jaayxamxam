@@ -6,17 +6,24 @@
 <main class="contenu">
   @if (reponse(); as r) {
     <section class="succes">
-      <h2 class="enseigne" style="margin:0 0 .3rem">Course envoyée</h2>
+      <p class="tampon bleu">Enregistrée</p>
+      <h2 class="enseigne" style="margin:.4rem 0 .3rem">Course envoyée</h2>
       <p style="margin:0">Gardez ce code : il sert à suivre le livreur et à le noter.</p>
       <p class="code">{{ r.codeSuivi }}</p>
       <p>Prix annoncé : <strong>{{ fcfa(r.prixEstime) }}</strong> pour {{ formatDistance(r.distanceM) }}.</p>
       <div class="actions">
         <a class="bouton cobalt" routerLink="/suivi" [queryParams]="{ code: r.codeSuivi }">Suivre la course</a>
-        <a class="bouton creux" routerLink="/yonni">Retour</a>
+        <a class="bouton creux" routerLink="/yonni">Voir les livreurs</a>
       </div>
     </section>
   } @else {
     @if (erreur()) { <p class="erreur">{{ erreur() }}</p> }
+
+    <section class="bon">
+      <div class="bon-entete">
+        <h1 class="enseigne">Votre course</h1>
+        <span class="bon-numero">Bon de transport</span>
+      </div>
 
     <form class="formulaire" [formGroup]="form" (ngSubmit)="envoyer()">
       <fieldset>
@@ -54,15 +61,13 @@
 
       <!-- Le prix apparaît dès que les deux quartiers sont choisis -->
       @if (estimation(); as e) {
-        <div class="course-resume">
-          <div>
-            <span class="prix">{{ fcfa(e.prix) }}</span>
-            <small>Prix indicatif, à confirmer avec le livreur</small>
-          </div>
-          <div style="text-align:right">
-            <span class="prix">{{ formatDistance(e.metres) }}</span>
-            <small>environ {{ minutesTrajet(e.metres) }} min</small>
-          </div>
+        <!-- Le prix est annoncé avant l'envoi : pas de négociation au téléphone -->
+        <div class="recu">
+          <p class="recu-lignes">
+            {{ formatDistance(e.metres) }} · environ {{ minutesTrajet(e.metres) }} min<br />
+            Prix indicatif, à confirmer avec le livreur
+          </p>
+          <span class="recu-total">{{ fcfa(e.prix) }}</span>
         </div>
       }
 
@@ -96,5 +101,6 @@
         {{ enCours() ? 'Envoi…' : 'Envoyer la course' }}
       </button>
     </form>
+    </section>
   }
 </main>

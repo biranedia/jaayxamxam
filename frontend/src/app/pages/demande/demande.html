@@ -1,23 +1,29 @@
 <main class="contenu">
   @if (reponse(); as r) {
     <section class="succes">
-      <h1 class="enseigne" style="margin:0 0 .3rem">Demande envoyée</h1>
+      <p class="tampon vert">Enregistrée</p>
+      <h1 class="enseigne" style="margin:.4rem 0 .3rem">Demande envoyée</h1>
       <p style="margin:0">Gardez ce code : il sert à suivre la demande et à noter l'artisan.</p>
       <p class="code">{{ r.codeSuivi }}</p>
       <div class="actions">
         <a class="bouton" routerLink="/suivi" [queryParams]="{ code: r.codeSuivi }">Suivre ma demande</a>
-        <a class="bouton creux" routerLink="/">Retour</a>
+        <a class="bouton creux" routerLink="/artisans">Chercher un autre artisan</a>
       </div>
     </section>
   } @else {
-    <h1 class="titre-page enseigne">Demander un service</h1>
-    <p class="sous-titre">
-      @if (artisanId()) {
-        Votre demande partira directement à l'artisan choisi.
-      } @else {
-        Les artisans du métier et du quartier choisis recevront votre demande.
-      }
-    </p>
+    <section class="bon">
+      <div class="bon-entete">
+        <h1 class="enseigne">Demander un service</h1>
+        <span class="bon-numero">Bon de commande</span>
+      </div>
+
+      <p class="sous-titre" style="margin-top:-.5rem">
+        @if (artisanId()) {
+          Votre demande partira directement à l'artisan choisi.
+        } @else {
+          Les artisans du métier et du quartier choisis recevront votre demande.
+        }
+      </p>
 
     <form [formGroup]="form" (ngSubmit)="envoyer()" class="formulaire">
       <label>
@@ -49,6 +55,7 @@
       <label class="case">
         <input type="checkbox" formControlName="urgente" />
         C'est urgent
+        @if (form.controls.urgente.value) { <span class="tampon">Urgent</span> }
       </label>
 
       <label>
@@ -71,5 +78,6 @@
         {{ enCours() ? 'Envoi…' : 'Envoyer la demande' }}
       </button>
     </form>
+    </section>
   }
 </main>

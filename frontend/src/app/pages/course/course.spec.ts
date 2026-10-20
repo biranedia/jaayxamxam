@@ -30,7 +30,7 @@ describe('Demande de course', () => {
 
   it('ne montre aucun prix tant que le trajet n\'est pas choisi', async () => {
     const el = (await ouvrir()).nativeElement as HTMLElement;
-    expect(el.querySelector('.course-resume')).toBeNull();
+    expect(el.querySelector('.recu')).toBeNull();
   });
 
   it('calcule le prix dès que les deux quartiers sont choisis', async () => {
@@ -40,7 +40,7 @@ describe('Demande de course', () => {
     await fixture.whenStable();
 
     // Médina → Golf Sud : ~12,8 km à vol d'oiseau, majorés de 30 % pour les rues
-    const resume = (fixture.nativeElement as HTMLElement).querySelector('.course-resume')?.textContent ?? '';
+    const resume = (fixture.nativeElement as HTMLElement).querySelector('.recu')?.textContent ?? '';
     expect(resume).toContain('16,7 km');
     expect(resume).toContain('5 000 FCFA');
   });
@@ -52,7 +52,7 @@ describe('Demande de course', () => {
     await fixture.whenStable();
 
     // 16,7 km × 800 FCFA, bien au-dessus du minimum de 5 000 FCFA
-    expect((fixture.nativeElement as HTMLElement).querySelector('.course-resume')?.textContent)
+    expect((fixture.nativeElement as HTMLElement).querySelector('.recu')?.textContent)
       .toContain('13 400 FCFA');
   });
 

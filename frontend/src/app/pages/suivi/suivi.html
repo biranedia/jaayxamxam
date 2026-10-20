@@ -1,12 +1,12 @@
 <main class="contenu">
-  <h1 class="titre-page enseigne">Suivre ma demande</h1>
-  <p class="sous-titre">Entrez le code reçu après l'envoi.</p>
+  <h1 class="titre-page enseigne">Où ça en est</h1>
+  <p class="sous-titre">Entrez le code reçu après l'envoi de votre demande ou de votre course.</p>
 
   <form class="formulaire" (submit)="soumettre(champ.value, $event)" style="margin-bottom:1.2rem">
     <label>
       Code de suivi
       <input #champ [value]="saisie()" placeholder="DK7M2PQX4" autocapitalize="characters"
-             style="font-family:Anton,monospace;font-size:1.3rem;letter-spacing:.14em" />
+             autocomplete="off" spellcheck="false" class="saisie-code" />
     </label>
     <button type="submit" class="bouton large" [disabled]="enCours()">
       {{ enCours() ? 'Recherche…' : 'Voir où ça en est' }}
@@ -16,23 +16,33 @@
   @if (erreur()) { <p class="erreur">{{ erreur() }}</p> }
 
   @if (resultat(); as r) {
-    <section class="bloc">
-      <h2 class="enseigne">{{ r.type === 'course' ? 'Course Yonni la' : 'Demande d\'artisan' }}</h2>
-      <p style="margin:0 0 .2rem">{{ r.resume }}</p>
-      <p class="sous-titre" style="margin:0">Envoyée le {{ r.creeLe | date: 'd MMMM à HH:mm' }}</p>
+    <!-- Le talon : la souche à gauche porte le code, le corps raconte où ça en est -->
+    <section class="talon">
+      <div class="talon-souche">
+        <p class="atelier-oeil">Votre code</p>
+        <p class="talon-code">{{ r.codeSuivi }}</p>
+      </div>
+      <div class="talon-corps">
+        <h2 class="enseigne">{{ r.type === 'course' ? 'Course Yonni la' : 'Demande d\'artisan' }}</h2>
+        <p style="margin:0 0 .2rem">{{ r.resume }}</p>
+        <p class="sous-titre" style="margin:0">Envoyée le {{ r.creeLe | date: 'd MMMM à HH:mm' }}</p>
 
-      <!-- Les quatre étapes dans l'ordre : c'est bien une suite, pas une liste -->
-      <ol class="etapes">
-        @for (e of etapes; track e.cle; let i = $index) {
-          <li [class.faite]="i <= etapeActuelle()" [class.courante]="i === etapeActuelle()">
-            {{ e.nom }}
-          </li>
+        @if (r.prixEstime) {
+          <p class="recu" style="margin-top:.8rem">
+            <span class="recu-lignes">Prix annoncé</span>
+            <span class="recu-total">{{ fcfa(r.prixEstime) }}</span>
+          </p>
         }
-      </ol>
 
-      @if (r.prixEstime) {
-        <p style="margin:.6rem 0 0">Prix annoncé : <strong>{{ fcfa(r.prixEstime) }}</strong></p>
-      }
+        <!-- Les quatre étapes dans l'ordre : c'est une suite, pas une liste -->
+        <ol class="etapes-tampon">
+          @for (e of etapes; track e.cle; let i = $index) {
+            <li [class.faite]="i <= etapeActuelle()" [class.courante]="i === etapeActuelle()">
+              {{ e.nom }}
+            </li>
+          }
+        </ol>
+      </div>
     </section>
 
     @if (r.intervenant; as p) {
@@ -75,7 +85,7 @@
     }
   } @else if (!erreur() && !enCours()) {
     <p class="vide">
-      Pas encore de code ? <a routerLink="/">Trouvez un artisan</a> ou
+      Pas encore de code ? <a routerLink="/artisans">Trouvez un artisan</a> ou
       <a routerLink="/course">demandez une course</a>.
     </p>
   }

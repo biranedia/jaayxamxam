@@ -52,7 +52,7 @@ describe('Suivi', () => {
 
   it('marque les étapes franchies jusqu\'à « En route »', async () => {
     const el = (await ouvrir('R4TB9HCN', course)).nativeElement as HTMLElement;
-    const etapes = [...el.querySelectorAll('.etapes li')];
+    const etapes = [...el.querySelectorAll('.etapes-tampon li')];
     expect(etapes.map(e => e.textContent?.trim()))
       .toEqual(['Envoyée', 'Acceptée', 'En route', 'Terminée']);
     expect(etapes.filter(e => e.classList.contains('faite')).length).toBe(3);
